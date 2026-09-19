@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "MIPS"
+authors = [
+    "Erlend Graff <erlend.h.graff@uit.no>",
+    "Øyvind Nohr <oyvind.a.nohr@uit.no>",
+]
+description = "A simulator for the MIPS instruction set"
+classifiers = ["Private :: Do Not Upload"]
+version = "1.0.0"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.10"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.3"
+pytest-cov = "^5.0.0"
+
+[tool.pytest.ini_options]
+log_cli = true
+log_cli_level = "INFO"
+log_cli_format = "%(asctime)s [%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)"
+log_cli_date_format = "%Y-%m-%d %H:%M:%S"

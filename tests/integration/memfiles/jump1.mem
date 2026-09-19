@@ -1,0 +1,11 @@
+
+# structure:
+# 'TestName' 'destination(register/address)' 'value' 'exception'
+
+
+> Test_jump_no_add 10 0 !trap
+0x0000000000000000	0x08000003	j     0xc
+0x0000000000000004	0x214A0001	addi  $t2, $t2, 1
+0x0000000000000008	0x21290001	addi  $t1, $t1, 1
+0x000000000000000c	0x0000000D	break 
+

@@ -1,0 +1,8 @@
+
+# structure:
+# 'TestName' 'destination(register/address)' 'value' 'exception'
+
+
+> Test_break 8 0 !trap
+0x00000000	0x0000000D	break
+

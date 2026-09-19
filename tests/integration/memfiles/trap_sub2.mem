@@ -1,0 +1,13 @@
+
+# structure:
+# 'TestName' 'destination(register/address)' 'value' 'exception'
+
+
+> Test_sub_ovf2 11 0 trap
+0x0000000000000000	0x3C098000	lui   $t1, 0x8000
+0x0000000000000004	0x214A0001	addi  $t2, $t2, 1
+0x0000000000000008	0x012A5822	sub   $t3, $t1, $t2
+0x000000000000000c	0x00000000	nop
+0x0000000000000010	0x00000000	nop 
+0x0000000000000014	0x0000000D	break
+

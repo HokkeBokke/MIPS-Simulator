@@ -1,0 +1,11 @@
+
+# structure:
+# 'TestName' 'destination(register/address)' 'value' 'exception'
+
+
+# no other dependencies, branch equal on empty registers
+> Test_beq_no_dependency 10 0 !trap
+0x0000000000000000	0x112A0002	beq   $t1, $t2, 0xc
+0x0000000000000004	0x00000000	nop   
+0x0000000000000008	0x214A0001	addi  $t2, $t2, 1
+0x000000000000000c	0x0000000D	break
