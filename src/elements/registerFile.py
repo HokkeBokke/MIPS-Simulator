@@ -21,8 +21,10 @@ class RegisterFile(CPUElement):
             self.register[i] = 0
 
     def connectInputs(self, inputs: List[Value]):
-        # Implement me!
-        pass
+        read_addr1 = inputs[0]
+        read_addr2 = inputs[1]
+        write_addr = inputs[2]
+        write_data = inputs[3]
 
     def printAll(self):
         '''
