@@ -26,9 +26,18 @@ class Memory(CPUElement):
         data from a file.
         '''
         
-        # Remove this and replace with your implementation!
-        # Implementation MUST populate the dictionary in self.memory!
-        raise AssertionError("initializeMemory not implemented in class Memory!")
+        with open(filename, "r") as fd:
+            lines = fd.readlines(-1)
+            for line in lines:
+                if line.startswith("#"):
+                    continue
+                if not line.isprintable:
+                    continue
+                instruction = line.split("\t")
+                self.memory[int(instruction[0], base=16)] = int(instruction[1], base=16)
+                
+        print("memory initialized:")
+        self.printAll()
         
     def printAll(self):
         for key in sorted(self.memory.keys()):
