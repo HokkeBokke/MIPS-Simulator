@@ -27,22 +27,31 @@ class MIPSSimulator():
         self.instructionMemory = InstructionMemory(memoryFileName)
         self.registerFile = RegisterFile()
 
+        self.constant1 = Constant(1)
         self.constant3 = Constant(3)
         self.constant4 = Constant(4)
         self.randomControl = RandomControl()
         self.mux = Mux()
         self.adder = Add()
         self.pc = PC(self.startAddress())
+        print(self.pc.currentAddress.value)
 
-        self.elements = [self.constant3, self.constant4,
+        self.elements = [self.constant1, self.constant3, self.constant4,
                          self.randomControl, self.adder, self.mux]
 
         self._connectCPUElements()
 
     def _connectCPUElements(self):
+        self.constant1.connectInputs([])
         self.constant3.connectInputs([])
         self.constant4.connectInputs([])
         self.randomControl.connectInputs([])
+        
+        self.adder.connectInputs([self.pc.currentAddress, self.constant4.constantValue])
+        self.pc.connectInputs([self.adder.result])
+        self.instructionMemory.connectInputs([self.pc.currentAddress])
+        
+        return
         self.pc.connectInputs([self.mux.output])
         self.adder.connectInputs([self.pc.currentAddress, self.constant4.constantValue])
         self.mux.connectInputs([self.adder.result, self.constant3.constantValue, self.randomControl.controlSignal])
@@ -51,6 +60,7 @@ class MIPSSimulator():
         '''
         Returns first instruction from instruction memory
         '''
+        print("start address: ", hex(next(iter(sorted(self.instructionMemory.memory.keys())))))
         return next(iter(sorted(self.instructionMemory.memory.keys())))
 
     def clockCycles(self):
@@ -83,5 +93,8 @@ class MIPSSimulator():
         
         # The following is just a small sample implementation
         self.pc.writeOutput()
+        print("pc:", self.pc.currentAddress.value)
+        print("mem:", self.instructionMemory.incomingAddress.value)
+        self.instructionMemory.writeOutput()
         for elem in self.elements:
             elem.writeOutput()
