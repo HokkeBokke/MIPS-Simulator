@@ -17,7 +17,7 @@ class Memory(CPUElement):
     
         # Dictionary mapping memory addresses to data
         self.memory = {}
-        
+
         self.initializeMemory(filename)
     
     def initializeMemory(self, filename: str):
@@ -31,7 +31,7 @@ class Memory(CPUElement):
             for line in lines:
                 if line.startswith("#"):
                     continue
-                if not line.isprintable:
+                if line.isspace():
                     continue
                 instruction = line.split("\t")
                 self.memory[int(instruction[0], base=16)] = int(instruction[1], base=16)

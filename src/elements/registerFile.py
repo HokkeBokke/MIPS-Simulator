@@ -19,12 +19,20 @@ class RegisterFile(CPUElement):
         # All registers default to 0
         for i in range(0, 32):
             self.register[i] = 0
+            
+        self.read_data1 = Value(0)
+        self.read_data2 = Value(0)
+
 
     def connectInputs(self, inputs: List[Value]):
-        read_addr1 = inputs[0]
-        read_addr2 = inputs[1]
-        write_addr = inputs[2]
-        write_data = inputs[3]
+        self.RegWrite = inputs[0]   # regWrite from Control unit
+        self.read_addr1 = inputs[1] # instruction [25-21]
+        self.read_addr2 = inputs[2] # instruction [20-16]
+        self.write_addr = inputs[3] # instruction [15-11 or 20-16] mux
+        self.write_data = inputs[4] # data from writeback stage
+        
+    def writeOutput(self):
+        pass
 
     def printAll(self):
         '''

@@ -2,6 +2,10 @@
 Code written for inf-2200, University of Tromso
 '''
 
+from elements.alu import ALU
+from elements.aluControl import ALUControl
+from elements.combineBits import CombineBits
+from elements.control import Control
 from elements.pc import PC
 from elements.add import Add
 from elements.mux import Mux
@@ -10,6 +14,8 @@ from elements.instructionMemory import InstructionMemory
 from elements.dataMemory import DataMemory
 from elements.constant import Constant
 from elements.randomControl import RandomControl
+from elements.shiftleft import ShiftLeft2
+from elements.signExtend import SignExtend
 
 
 class MIPSSimulator():
@@ -28,33 +34,43 @@ class MIPSSimulator():
         self.registerFile = RegisterFile()
 
         self.constant1 = Constant(1)
-        self.constant3 = Constant(3)
         self.constant4 = Constant(4)
-        self.randomControl = RandomControl()
-        self.mux = Mux()
-        self.adder = Add()
+        self.add4toPC = Add()
         self.pc = PC(self.startAddress())
-        print(self.pc.currentAddress.value)
+        self.control = Control()
+        
+        self.shiftLeftJumpAddress = ShiftLeft2()
+        self.combineJumpAddress = CombineBits(range(28, 32), range(0, 28))
+        self.jumpMux = Mux()
+        
+        self.signExtendImmediate = SignExtend()
+        self.immediateMux = Mux()
+        self.aluControl = ALUControl()
+        self.alu = ALU()
 
-        self.elements = [self.constant1, self.constant3, self.constant4,
-                         self.randomControl, self.adder, self.mux]
+        self.elements = [self.constant1, self.constant4, self.control, 
+                         self.add4toPC, self.shiftLeftJumpAddress, self.combineJumpAddress, self.jumpMux,
+                         self.signExtendImmediate, self.immediateMux, self.aluControl, self.alu]
 
         self._connectCPUElements()
 
     def _connectCPUElements(self):
         self.constant1.connectInputs([])
-        self.constant3.connectInputs([])
         self.constant4.connectInputs([])
-        self.randomControl.connectInputs([])
         
-        self.adder.connectInputs([self.pc.currentAddress, self.constant4.constantValue])
-        self.pc.connectInputs([self.adder.result])
+        self.add4toPC.connectInputs([self.pc.currentAddress, self.constant4.constantValue])
+        self.pc.connectInputs([self.jumpMux.output])
         self.instructionMemory.connectInputs([self.pc.currentAddress])
+        self.control.connectInputs([self.instructionMemory.outgoingInstruction])
         
-        return
-        self.pc.connectInputs([self.mux.output])
-        self.adder.connectInputs([self.pc.currentAddress, self.constant4.constantValue])
-        self.mux.connectInputs([self.adder.result, self.constant3.constantValue, self.randomControl.controlSignal])
+        self.shiftLeftJumpAddress.connectInputs([self.instructionMemory.outgoingInstruction])
+        self.combineJumpAddress.connectInputs([self.pc.currentAddress, self.shiftLeftJumpAddress.result])
+        self.jumpMux.connectInputs([self.add4toPC.result, self.combineJumpAddress.output, self.control.Jump])
+        
+        self.signExtendImmediate.connectInputs([self.instructionMemory.outgoingInstruction])
+        self.immediateMux.connectInputs([self.registerFile.read_data2, self.signExtendImmediate.output, self.control.ALUSrc])
+        self.aluControl.connectInputs([self.instructionMemory.outgoingInstruction, self.control.ALUOp])
+        self.alu.connectInputs([self.registerFile.read_data1, self.immediateMux.output, self.aluControl.aluInstr])
 
     def startAddress(self):
         '''
