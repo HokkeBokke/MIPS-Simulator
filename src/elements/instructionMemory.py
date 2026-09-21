@@ -5,7 +5,7 @@ Code written for inf-2200, University of Tromso
 '''
 
 from elements.memory import Memory
-from common import Value
+from common import Value, MemoryAccessError
 
 class InstructionMemory(Memory):
     def __init__(self, filename: str):
@@ -20,5 +20,7 @@ class InstructionMemory(Memory):
         self.incomingAddress = inputs[0] # read address
     
     def writeOutput(self):
-        print(self.incomingAddress.value, self.memory)
-        self.outgoingInstruction = self.memory[self.incomingAddress.value]
+        if self.incomingAddress.value not in self.memory:
+            raise MemoryAccessError(f"Cannot access memory at address: {hex(self.incomingAddress.value)}")
+        
+        self.outgoingInstruction.value = self.memory[self.incomingAddress.value]

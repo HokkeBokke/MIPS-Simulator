@@ -46,3 +46,7 @@ class Break(Exception):
 class Overflow(Exception):
     def __init__(self, message):
         self.message = message
+        
+class MemoryAccessError(Exception):
+    def __init__(self, message):
+        self.message = message

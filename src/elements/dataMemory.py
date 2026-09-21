@@ -5,7 +5,7 @@ Code written for inf-2200, University of Tromso
 '''
 
 from elements.memory import Memory
-from common import Value
+from common import Value, MemoryAccessError
 
 class DataMemory(Memory):
     def __init__(self, filename: str):
@@ -20,4 +20,7 @@ class DataMemory(Memory):
         self.incomingAddress = inputs[0]
     
     def writeOutput(self):
-        self.outgoingData = self.memory[self.incomingAddress.value]
+        if self.incomingAddress.value not in self.memory:
+            raise MemoryAccessError(f"Cannot access memory at address: {hex(self.incomingAddress.value)}")
+        
+        self.outgoingData.value = self.memory[self.incomingAddress.value]
