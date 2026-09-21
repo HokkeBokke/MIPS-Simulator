@@ -16,7 +16,16 @@ class Control(CPUElement):
         self.controlSignal: Value = Value(0)
         
     def connectInputs(self, inputs: List[Value]):
-        assert len(inputs) == 0, 'Random control does not have any inputs'
+        assert len(inputs) == 1, 'Instruction [31-26]'
+        PCSrc = 0
+        RegWrite = 0
+        RegDst = 0
+        ALUSrc = 0
+        ALUOp = 0
+        ALUControl = 0
+        MemRead = 0
+        MemWrite = 0
+        MemtoReg = 0
         
     def writeOutput(self):
         self.controlSignal.value = random.randint(0, 1)

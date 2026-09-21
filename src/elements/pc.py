@@ -19,7 +19,9 @@ class PC(CPUElement):
         assert len(inputs) == 1, 'PC should have one input'
         
         # Input
+        next = self.incomingAddress.value
         self.incomingAddress = inputs[0]
+        self.incomingAddress.value = next
         
     def writeOutput (self):
         # pc is updated by the input source

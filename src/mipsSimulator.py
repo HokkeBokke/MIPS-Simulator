@@ -93,8 +93,8 @@ class MIPSSimulator():
         
         # The following is just a small sample implementation
         self.pc.writeOutput()
-        print("pc:", self.pc.currentAddress.value)
-        print("mem:", self.instructionMemory.incomingAddress.value)
+        print("pc:", hex(self.pc.currentAddress.value))
+        print("mem:", hex(self.instructionMemory.incomingAddress.value))
         self.instructionMemory.writeOutput()
         for elem in self.elements:
             elem.writeOutput()
