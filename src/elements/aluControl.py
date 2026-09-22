@@ -14,7 +14,8 @@ alu_control_signal = {
 r_instruction_funct = {
     0x20: "add",
     0x21: "addu",
-    0x24: "sub",
+    0x22: "sub",
+    0x23: "subu",
     0x24: "AND",
 }
 
@@ -33,12 +34,12 @@ class ALUControl(CPUElement):
         self.aluOp = inputs[1]
     
     def writeOutput(self) -> None:
-        if self.aluOp == 0b10:
+        if self.aluOp.value == 0b10:
             funct = r_instruction_funct[(self.funct.value & 0b111111)]
             match funct:
                 case "add":
                     self.aluInstr.value = alu_control_signal["add"]
-                case "sub":
+                case "sub" "subu":
                     self.aluInstr.value = alu_control_signal["subtract"]
                 case "AND":
                     self.aluInstr.value = alu_control_signal["AND"]
@@ -46,9 +47,10 @@ class ALUControl(CPUElement):
                     self.aluInstr.value = alu_control_signal["OR"]
                 case _:
                     print("INVALID INSTRUCTION BRO")
-        elif self.aluOp == 0b00:
+                    
+        elif self.aluOp.value == 0b00:
             self.aluInstr.value = alu_control_signal["add"]
-        elif self.aluOp == 0b01:
+        elif self.aluOp.value == 0b01:
             self.aluInstr.value = alu_control_signal["subtract"]
         else:
             print("DEBUG: Unknown ALUOp")

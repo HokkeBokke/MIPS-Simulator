@@ -36,8 +36,8 @@ class Memory(CPUElement):
                 instruction = line.split("\t")
                 self.memory[int(instruction[0], base=16)] = int(instruction[1], base=16)
                 
-        print("memory initialized:")
-        self.printAll()
+        #print("memory initialized:")
+        #self.printAll()
         
     def printAll(self):
         for key in sorted(self.memory.keys()):

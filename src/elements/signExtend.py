@@ -21,6 +21,14 @@ class SignExtend(CPUElement):
         self.input: Value = inputs[0]
 
     def writeOutput(self):
+        print(self.input.value)
         signBit = self.input.value >> 15
-        self.output.value = (signBit << 31) | (self.input.value & 0b111111111111111)
-
+        print(self.input.value)
+        print("negative" if signBit == 1 else "positive")
+        
+        if signBit == 0:
+            self.output.value = self.input.value & 0xffffffff
+        elif signBit == 1:
+            self.output.value = ((1 << 32) - 1) | (self.input.value & 0xffff)
+            
+        print(bin(self.output.value), self.output.value)

@@ -25,14 +25,31 @@ class RegisterFile(CPUElement):
 
 
     def connectInputs(self, inputs: List[Value]):
-        self.RegWrite = inputs[0]   # regWrite from Control unit
-        self.read_addr1 = inputs[1] # instruction [25-21]
-        self.read_addr2 = inputs[2] # instruction [20-16]
-        self.write_addr = inputs[3] # instruction [15-11 or 20-16] mux
+        """
+        Inputs:
+            0: RegWrite
+            1: Read register 1
+            2: Read register 2
+            3: Write register
+            4: Write data
+            
+        Outputs:
+            Read data 1
+            Read data 2
+        """
+        
+        self.RegWrite = inputs[0]   # regWrite signal from Control unit
+        self.read_addr1 = inputs[1] # instruction [25-21] source
+        self.read_addr2 = inputs[2] # instruction [20-16] target
+        self.write_reg = inputs[3]  # instruction [15-11] dest/target
         self.write_data = inputs[4] # data from writeback stage
         
     def writeOutput(self):
-        pass
+        if self.RegWrite:
+            self.register[self.write_reg.value] = self.write_data.value
+        
+        self.read_data1.value = self.register[self.read_addr1.value]
+        self.read_data2.value = self.register[self.read_addr2.value]
 
     def printAll(self):
         '''

@@ -24,13 +24,20 @@ class ALU(CPUElement):
         self.isZero.value = 0
         
         match self.aluControlOp.value:
-            case 0x0010:
+            case 0b0010:
                 print("ALU add")
-            case 0x0110:
+                print(f"ALU: {self.value_a.value} + {self.value_b.value} = {self.value_a.value + self.value_b.value}")
+                self.result.value = self.value_a.value + self.value_b.value
+            case 0b0110:
                 print("ALU sub")
-            case 0x0000:
+                self.result.value = self.value_a.value - self.value_b.value
+            case 0b0000:
                 print("ALU and")
-            case 0x0001:
+                self.result.value = self.value_a.value & self.value_b.value
+            case 0b0001:
                 print("ALU or")
+                self.result.value = self.value_a.value | self.value_b.value
             case _:
-                print("ALU ?", self.aluControlOp.value)
+                print("ALU ?", bin(self.aluControlOp.value))
+                
+        print(f"ALU Output = {self.result.value} ({hex(self.result.value)})")

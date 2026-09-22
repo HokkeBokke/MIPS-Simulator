@@ -26,13 +26,13 @@ def printInstructionFormat(instr: int):
     '''
     print(f"""
         opcode:    {bin(instr >> 26 & 0x3f)[2:].zfill(6)},
-        rs:        {bin(instr >> 21 & 0x1f)[2:].zfill(5)},
-        rt:        {bin(instr >> 16 & 0x1f)[2:].zfill(5)},
-        rd:        {bin(instr >> 11 & 0x1f)[2:].zfill(5)},
+        rs:        {bin(instr >> 21 & 0x1f)[2:].zfill(5)} ({instr >> 21 & 0x1f}),
+        rt:        {bin(instr >> 16 & 0x1f)[2:].zfill(5)} ({instr >> 16 & 0x1f}),
+        rd:        {bin(instr >> 11 & 0x1f)[2:].zfill(5)} ({instr >> 11 & 0x1f}),
         shamt:     {bin(instr >> 6  & 0x1f)[2:].zfill(5)},
         funct:     {bin(instr       & 0x3f)[2:].zfill(6)},
-        imm:       {bin(instr       & 0xffff)[2:].zfill(16)},
-        jump_addr: {bin(instr       & 0x3ffffff)[2:].zfill(26)},
+        imm:       {bin(instr       & 0xffff)[2:].zfill(16)} ({instr & 0xffff}) ({hex(instr & 0xffff)}),
+        jump_addr: {bin(instr       & 0x3ffffff)[2:].zfill(26)} ({hex(instr & 0x3ffffff)}),
     """)
 
 class Value:
