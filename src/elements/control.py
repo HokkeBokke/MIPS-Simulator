@@ -4,13 +4,27 @@ Code written for inf-2200, University of Tromso
 
 from elements.cpuElement import CPUElement
 from typing import List
-from common import Value, printInstructionFormat
+from common import Value
 
 instruction_opcodes = {
     0x02: "j",
     0x0F: "lui",
     0x23: "lw",
-    0x2B: "sw"
+    0x2B: "sw",
+    0x09: "addiu",
+    0x05: "bne",
+    0x04: "beq"
+}
+
+extention_op = {
+    "sext16": 0b00,
+    "zext16": 0b01,
+    "upper": 0b10
+}
+
+branch_op = {
+    "bne": 0b01,
+    "beq": 0b10
 }
 
 class Control(CPUElement):
@@ -32,6 +46,7 @@ class Control(CPUElement):
         self.MemRead = Value(0)
         self.MemWrite = Value(0)
         self.MemtoReg = Value(0)
+        self.ExtOp = Value(0)
         
     def reset_outputs(self):
         self.PCSrc.value = 0
@@ -44,6 +59,7 @@ class Control(CPUElement):
         self.MemRead.value = 0
         self.MemWrite.value = 0
         self.MemtoReg.value = 0
+        self.ExtOp.value = 0
         
     def connectInputs(self, inputs: List[Value]):
         assert len(inputs) == 1, 'Instruction as input'
@@ -88,13 +104,37 @@ class Control(CPUElement):
                 self.ALUSrc.value = 1
                 self.RegWrite.value = 1
                 self.RegDst.value = 0
+                self.ExtOp.value = extention_op["upper"]
             case "lw":
                 self.ALUSrc.value = 1
-                self.RegWrite.value = 1
                 self.ALUOp.value = 0b00
+                self.RegDst.value = 0
+                self.ExtOp.value = extention_op["sext16"]
+                self.RegWrite.value = 1
+                self.MemRead.value = 1
+                self.MemtoReg.value = 1
             case "sw":
                 self.ALUSrc.value = 1
                 self.RegWrite.value = 1
                 self.ALUOp.value = 0b00
+            case "addiu":
+                self.ALUSrc.value = 1
+                self.RegWrite.value = 1
+                self.ALUOp.value = 0b00
+                self.ExtOp.value = extention_op["sext16"]
+            case "bne":
+                self.ALUSrc.value = 0
+                self.RegWrite.value = 0
+                self.ALUOp.value = 0b01
+                self.Branch.value = branch_op["bne"]
+                self.ExtOp.value = extention_op["sext16"]
+            case "beq":
+                self.ALUSrc.value = 0
+                self.RegWrite.value = 0
+                self.ALUOp.value = 0b01
+                self.Branch.value = branch_op["beq"]
+                self.ExtOp.value = extention_op["sext16"]
             case _:
                 print("invalid opcode:", hex(opcode))
+        
+        print("jump", self.Jump.value, "branch", self.Branch.value)

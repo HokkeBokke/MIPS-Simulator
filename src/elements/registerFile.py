@@ -45,11 +45,11 @@ class RegisterFile(CPUElement):
         self.write_data = inputs[4] # data from writeback stage
         
     def writeOutput(self):
-        if self.RegWrite:
-            self.register[self.write_reg.value] = self.write_data.value
-        
         self.read_data1.value = self.register[self.read_addr1.value]
         self.read_data2.value = self.register[self.read_addr2.value]
+        
+        if self.RegWrite.value and self.write_reg.value != 0:
+            self.register[self.write_reg.value] = self.write_data.value
 
     def printAll(self):
         '''
@@ -60,7 +60,7 @@ class RegisterFile(CPUElement):
         print("Register file")
         print("================")
         for i in range(0, 32):
-            print(f"{self.registerNames[i]} \t=> {common.fromUnsignedWordToSignedWord(self.register[i])} ({hex(int(self.register[i]))[:-1]})")
+            print(f"{self.registerNames[i]} \t=> {common.fromUnsignedWordToSignedWord(self.register[i])} ({hex(int(self.register[i]))})")
         print("================")
         print()
         print()

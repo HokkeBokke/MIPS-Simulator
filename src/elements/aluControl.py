@@ -12,6 +12,8 @@ alu_control_signal = {
 }
 
 r_instruction_funct = {
+    0x00: "nop",
+    0x0d: "break",
     0x20: "add",
     0x21: "addu",
     0x22: "sub",
@@ -37,6 +39,10 @@ class ALUControl(CPUElement):
         if self.aluOp.value == 0b10:
             funct = r_instruction_funct[(self.funct.value & 0b111111)]
             match funct:
+                case "nop":
+                    return
+                case "break":
+                    exit(0)
                 case "add":
                     self.aluInstr.value = alu_control_signal["add"]
                 case "sub" "subu":

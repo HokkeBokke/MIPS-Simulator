@@ -28,3 +28,4 @@ class Add(CPUElement):
         # Output values
         assert isinstance(self.value_a.value, int) and isinstance(self.value_b.value, int)
         self.result.value = (self.value_a.value + self.value_b.value) & 0xffffffff # Convert to 32-bit (ignore overflow)
+        print(f"add: {hex(self.value_a.value)} + {hex(self.value_b.value)} = {hex(self.result.value)}")

@@ -27,10 +27,16 @@ class DataMemory(Memory):
         self.MemReadSignal = inputs[3]
     
     def writeOutput(self):
-        if self.MemReadSignal.value == 0:
-            return
+        if self.MemReadSignal.value == 1:
+            if self.incomingAddress.value not in self.memory:
+                self.outgoingData.value = 0
+                return
+            
+            self.outgoingData.value = self.memory[self.incomingAddress.value]
+            
+        if self.MemWriteSignal.value == 1:
+            if self.incomingAddress.value not in self.memory:
+                raise MemoryAccessError(f"Cannot access memory at address: {hex(self.incomingAddress.value)}")
+            
+            self.memory[self.incomingAddress.value] = self.write_data.value
         
-        if self.incomingAddress.value not in self.memory:
-            raise MemoryAccessError(f"Cannot access memory at address: {hex(self.incomingAddress.value)}")
-        
-        self.outgoingData.value = self.memory[self.incomingAddress.value]

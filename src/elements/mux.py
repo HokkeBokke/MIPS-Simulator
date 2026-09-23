@@ -7,10 +7,10 @@ from typing import List
 from common import Value
 
 class Mux(CPUElement):
-    def __init__(self):
+    def __init__(self, numInputs):
         # Inputs
-        self.inputZero: Value = Value(0)
-        self.inputOne: Value = Value(0)
+        self.inputs: list[Value] = []
+        self.numInputs: int = numInputs
         self.controlSignal: Value = Value(0)
         
         # Output
@@ -20,27 +20,23 @@ class Mux(CPUElement):
         '''
         Connect mux to input sources and controller
         
-        Note that the first inputs is input zero, and the second is input 1
+        Note that the first inputs is input zero, and the second is input 1 >UPDATE THIS
         '''
-        assert len(inputs) == 3, 'Mux should have three inputs'
+        assert len(inputs)-1 == self.numInputs, 'Number of inputs must match'
         
         # Inputs
-        self.inputZero: Value = inputs[0]
-        self.inputOne: Value = inputs[1]
-        self.controlSignal: Value = inputs[2]
+        self.numInputs = self.numInputs
+        self.inputs: list[Value] = inputs[0:self.numInputs]
+        self.controlSignal: Value = inputs[self.numInputs]
 
     def writeOutput(self):
         muxControl = self.controlSignal.value
         
         assert isinstance(muxControl, int)
         assert not isinstance(muxControl, bool)  # ...  (not bool)
-        assert muxControl == 0 or muxControl == 1, f"Invalid mux control signal value: {muxControl}"
+        assert muxControl in range(0,self.numInputs+1), f"Invalid mux control signal value: {muxControl}"
         
-        if muxControl == 0:
-            self.output.value = self.inputZero.value
-        else:  # muxControl == 1
-            self.output.value = self.inputOne.value
-        #print(hex(self.output.value))
+        self.output.value = self.inputs[self.controlSignal.value].value
     
     def printOutput(self):
         '''

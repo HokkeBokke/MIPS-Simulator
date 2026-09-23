@@ -25,19 +25,19 @@ class ALU(CPUElement):
         
         match self.aluControlOp.value:
             case 0b0010:
-                print("ALU add")
-                print(f"ALU: {self.value_a.value} + {self.value_b.value} = {self.value_a.value + self.value_b.value}")
                 self.result.value = self.value_a.value + self.value_b.value
+                print(f"ALU: {self.value_a.value} + {self.value_b.value} = {self.result.value} ({hex(self.result.value)})")
             case 0b0110:
-                print("ALU sub")
                 self.result.value = self.value_a.value - self.value_b.value
+                print(f"ALU: {self.value_a.value} - {self.value_b.value} = {self.result.value} ({hex(self.result.value)})")
             case 0b0000:
-                print("ALU and")
                 self.result.value = self.value_a.value & self.value_b.value
+                print(f"ALU: {self.value_a.value} & {self.value_b.value} = {self.result.value} ({hex(self.result.value)})")
             case 0b0001:
-                print("ALU or")
                 self.result.value = self.value_a.value | self.value_b.value
+                print(f"ALU: {self.value_a.value} | {self.value_b.value} = {self.result.value} ({hex(self.result.value)})")
             case _:
                 print("ALU ?", bin(self.aluControlOp.value))
                 
-        print(f"ALU Output = {self.result.value} ({hex(self.result.value)})")
+        if self.result.value == 0:
+            self.isZero.value = 1
