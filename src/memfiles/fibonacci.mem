@@ -11,7 +11,7 @@
 0xbfc00008	0x0000000d	break
 
 # <begin>
-0xbfc00200	0x24100040	addiu s0, zero, 40    # number of fibonacci numbers to generate
+0xbfc00200	0x24100028	addiu s0, zero, 40    # number of fibonacci numbers to generate
 0xbfc00204	0x3c11bfc0	lui s1, 0xbfc0        # base address
 0xbfc00208	0x26314000	addiu s1, s1, 0x4000  # base address
 0xbfc0020c	0x02204820	add t1, s1, zero      # address counter (store address)

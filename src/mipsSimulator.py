@@ -22,6 +22,7 @@ from elements.zeroExtend import ZeroExtend
 from elements.andGate import AndGate
 from elements.orGate import OrGate
 from elements.notGate import NotGate
+from elements.memBuffer import FetchBuffer
 
 from common import printInstructionFormat
 
@@ -58,6 +59,8 @@ class MIPSSimulator():
         self.pc = PC(self.startAddress())
         self.control = Control()
         
+        self.fetchBuffer = FetchBuffer()
+        
         self.bne = BitFilter(0, 0)
         self.beq = BitFilter(1, 1)
         self.branchNotEqAnd = AndGate()
@@ -81,9 +84,11 @@ class MIPSSimulator():
         self.aluControl = ALUControl()
         self.alu = ALU()
 
-        self.elements = [self.opcodeBitFilter, self.readReg1BitFilter, 
+        self.elements = [self.fetchBuffer, self.opcodeBitFilter, self.readReg1BitFilter, 
+                         
                          self.readReg2BitFilter, self.writeRegBitFilter, self.immBitFilter, self.functBitFilter,
                          self.constant1, self.constant4, self.control,
+                         
                          self.beq, self.bne, 
                          self.writeRegMux, self.registerFile, self.add4toPC, self.shiftLeftJumpAddress, self.combineJumpAddress,
                          self.shiftUpper, self.zext,
@@ -97,12 +102,16 @@ class MIPSSimulator():
         self.constant1.connectInputs([])
         self.constant4.connectInputs([])
         
+        # Fetch stage
         self.add4toPC.connectInputs([self.pc.currentAddress, self.constant4.constantValue])
         self.pc.connectInputs([self.jumpMux.output])
         self.instructionMemory.connectInputs([self.pc.currentAddress])
         self.control.connectInputs([self.opcodeBitFilter.filteredBits])
         
-        self.shiftLeftJumpAddress.connectInputs([self.instructionMemory.outgoingInstruction])
+        # Pipeline buffer (fetch -> decode)
+        self.fetchBuffer.connectInputs([self.add4toPC.result, self.instructionMemory.outgoingInstruction])
+        
+        self.shiftLeftJumpAddress.connectInputs([self.fetchBuffer.out_instruction])
         self.combineJumpAddress.connectInputs([self.pc.currentAddress, self.shiftLeftJumpAddress.result])
         self.jumpMux.connectInputs([self.branchMux.output, self.combineJumpAddress.output, self.control.Jump])
         
@@ -113,15 +122,15 @@ class MIPSSimulator():
         self.branchEqAnd.connectInputs([self.beq.filteredBits, self.alu.isZero])
         self.branchOr.connectInputs([self.branchNotEqAnd.output, self.branchEqAnd.output])
         self.branchShiftLeft.connectInputs([self.extMux.output])
-        self.branchAdder.connectInputs([self.add4toPC.result, self.branchShiftLeft.result])
-        self.branchMux.connectInputs([self.add4toPC.result, self.branchAdder.result, self.branchOr.output])
+        self.branchAdder.connectInputs([self.fetchBuffer.out_pc, self.branchShiftLeft.result])
+        self.branchMux.connectInputs([self.fetchBuffer.out_pc, self.branchAdder.result, self.branchOr.output])
         
-        self.opcodeBitFilter.connectInputs([self.instructionMemory.outgoingInstruction])
-        self.readReg1BitFilter.connectInputs([self.instructionMemory.outgoingInstruction])
-        self.readReg2BitFilter.connectInputs([self.instructionMemory.outgoingInstruction])
-        self.writeRegBitFilter.connectInputs([self.instructionMemory.outgoingInstruction])
-        self.immBitFilter.connectInputs([self.instructionMemory.outgoingInstruction])
-        self.functBitFilter.connectInputs([self.instructionMemory.outgoingInstruction])
+        self.opcodeBitFilter.connectInputs([self.fetchBuffer.out_instruction])
+        self.readReg1BitFilter.connectInputs([self.fetchBuffer.out_instruction])
+        self.readReg2BitFilter.connectInputs([self.fetchBuffer.out_instruction])
+        self.writeRegBitFilter.connectInputs([self.fetchBuffer.out_instruction])
+        self.immBitFilter.connectInputs([self.fetchBuffer.out_instruction])
+        self.functBitFilter.connectInputs([self.fetchBuffer.out_instruction])
         
         self.writeRegMux.connectInputs([self.readReg2BitFilter.filteredBits, self.writeRegBitFilter.filteredBits, self.control.RegDst])
         self.WBMux.connectInputs([self.alu.result, self.dataMemory.outgoingData, self.control.MemtoReg])
@@ -142,7 +151,7 @@ class MIPSSimulator():
         
         self.signExtendImmediate.connectInputs([self.immBitFilter.filteredBits])
         self.immediateMux.connectInputs([self.registerFile.read_data2, self.extMux.output, self.control.ALUSrc])
-        self.aluControl.connectInputs([self.instructionMemory.outgoingInstruction, self.control.ALUOp])
+        self.aluControl.connectInputs([self.fetchBuffer.out_instruction, self.control.ALUOp])
         self.alu.connectInputs([self.registerFile.read_data1, self.immediateMux.output, self.aluControl.aluInstr])
         
         self.dataMemory.connectInputs([self.alu.result, self.registerFile.read_data2, self.control.MemWrite, self.control.MemRead])
