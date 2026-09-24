@@ -30,12 +30,12 @@ class ALU(CPUElement):
             case 0b0010:
                 self.result.value = num1 + num2
                 print(f"ALU: {self.value_a.value} + {self.value_b.value} = {self.result.value} ({hex(fromSignedWordToUnsignedWord(self.result.value))})")
-                if self.result.value >= 0x80000000 or self.result.value < -0x7fffffff:
+                if abs(self.result.value) >= 0x80000000:
                     raise Overflow("Addition overflow")
             case 0b0110:
                 self.result.value = num1 - num2
                 print(f"ALU: {self.value_a.value} - {self.value_b.value} = {self.result.value} ({hex(self.result.value)})")
-                if self.result.value < -0x80000000 or self.result.value > 0x7fffffff:
+                if abs(self.result.value) > 0x80000000:
                     raise Overflow("Subtraction overflow")
             case 0b0000:
                 self.result.value = num1 & num2
