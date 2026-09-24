@@ -35,8 +35,5 @@ class DataMemory(Memory):
             self.outgoingData.value = self.memory[self.incomingAddress.value]
             
         if self.MemWriteSignal.value == 1:
-            if self.incomingAddress.value not in self.memory:
-                raise MemoryAccessError(f"Cannot access memory at address: {hex(self.incomingAddress.value)}")
-            
             self.memory[self.incomingAddress.value] = self.write_data.value
         

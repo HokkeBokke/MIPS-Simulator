@@ -8,12 +8,13 @@ from common import Value
 
 instruction_opcodes = {
     0x02: "j",
+    0x04: "beq",
+    0x05: "bne",
+    0x08: "addi",
+    0x09: "addiu",
     0x0F: "lui",
     0x23: "lw",
     0x2B: "sw",
-    0x09: "addiu",
-    0x05: "bne",
-    0x04: "beq"
 }
 
 extention_op = {
@@ -115,8 +116,15 @@ class Control(CPUElement):
                 self.MemtoReg.value = 1
             case "sw":
                 self.ALUSrc.value = 1
+                self.RegWrite.value = 0
+                self.MemWrite.value = 1
+                self.ALUOp.value = 0b00
+                self.ExtOp.value = extention_op["sext16"]
+            case "addi":
+                self.ALUSrc.value = 1
                 self.RegWrite.value = 1
                 self.ALUOp.value = 0b00
+                self.ExtOp.value = extention_op["sext16"]
             case "addiu":
                 self.ALUSrc.value = 1
                 self.RegWrite.value = 1

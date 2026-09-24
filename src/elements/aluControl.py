@@ -1,13 +1,14 @@
 from typing import List
 
 from elements.cpuElement import CPUElement
-from common import Value
+from common import Value, Break
 
 alu_control_signal = {
+    "and": 0b0000,
+    "or": 0b0001,
+    "nor": 0b0101,
     "add": 0b0010,
     "subtract": 0b0110,
-    "AND": 0b0000,
-    "OR": 0b0001,
     "slt": 0b0111, # set on less than
 }
 
@@ -18,11 +19,16 @@ r_instruction_funct = {
     0x21: "addu",
     0x22: "sub",
     0x23: "subu",
-    0x24: "AND",
+    0x24: "and",
+    0x25: "or",
+    0x27: "nor",
+    0x2a: "slt"
 }
 
 class ALUControl(CPUElement):
     def __init__(self):
+        self.breakSignal = False
+        
         # INPUT
         self.funct = Value(0)
         self.aluOp = Value(0)
@@ -42,15 +48,19 @@ class ALUControl(CPUElement):
                 case "nop":
                     return
                 case "break":
-                    exit(0)
-                case "add":
+                    raise Break("break instruction reached")
+                case "add" | "addu":
                     self.aluInstr.value = alu_control_signal["add"]
-                case "sub" "subu":
+                case "sub" | "subu":
                     self.aluInstr.value = alu_control_signal["subtract"]
-                case "AND":
-                    self.aluInstr.value = alu_control_signal["AND"]
-                case "OR":
-                    self.aluInstr.value = alu_control_signal["OR"]
+                case "and":
+                    self.aluInstr.value = alu_control_signal["and"]
+                case "or":
+                    self.aluInstr.value = alu_control_signal["or"]
+                case "slt":
+                    self.aluInstr.value = alu_control_signal["slt"]
+                case "nor":
+                    self.aluInstr.value = alu_control_signal["nor"]
                 case _:
                     print("INVALID INSTRUCTION BRO")
                     

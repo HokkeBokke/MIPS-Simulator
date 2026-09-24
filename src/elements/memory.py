@@ -31,9 +31,11 @@ class Memory(CPUElement):
             for line in lines:
                 if line.startswith("#"):
                     continue
-                if line.isspace():
+                if not line.startswith("0x"):
                     continue
                 instruction = line.split("\t")
+                if len(instruction) < 2:
+                    continue
                 self.memory[int(instruction[0], base=16)] = int(instruction[1], base=16)
                 
         #print("memory initialized:")

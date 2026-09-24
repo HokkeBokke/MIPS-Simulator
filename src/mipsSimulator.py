@@ -36,6 +36,7 @@ class MIPSSimulator():
 
     def __init__(self, memoryFileName: str):
         self.nCycles = 0  # Used to hold number of clock cycles spent executing instructions
+        self.breakSignal = False
 
         self.dataMemory = DataMemory(memoryFileName)
         self.instructionMemory = InstructionMemory(memoryFileName)
@@ -190,4 +191,4 @@ class MIPSSimulator():
         for elem in self.elements:
             elem.writeOutput()
         self.registerFile.printAll()
-            
+        
