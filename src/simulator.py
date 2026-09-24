@@ -13,9 +13,9 @@ def runSimulator(sim: MIPSSimulator):
         #print(hex(sim.instructionMemory.outgoingInstruction.value))
         
         
-        #i = input("")
-        #if i == "exit" or i == "quit" or i == "q":
-        #    break
+        i = input("")
+        if i == "exit" or i == "quit" or i == "q":
+            break
 
 if __name__ == '__main__':
     assert len(sys.argv) == 2, f"Usage: python {sys.argv[0]} memoryFile"

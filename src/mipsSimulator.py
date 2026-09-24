@@ -84,17 +84,23 @@ class MIPSSimulator():
         self.aluControl = ALUControl()
         self.alu = ALU()
 
-        self.elements = [self.fetchBuffer, self.opcodeBitFilter, self.readReg1BitFilter, 
+        self.fetchStage = [self.pc, self.add4toPC, self.instructionMemory]
+
+        self.elements = [self.opcodeBitFilter, self.readReg1BitFilter, 
                          
                          self.readReg2BitFilter, self.writeRegBitFilter, self.immBitFilter, self.functBitFilter,
                          self.constant1, self.constant4, self.control,
                          
                          self.beq, self.bne, 
-                         self.writeRegMux, self.registerFile, self.add4toPC, self.shiftLeftJumpAddress, self.combineJumpAddress,
+                         self.writeRegMux, self.registerFile, self.shiftLeftJumpAddress, self.combineJumpAddress,
                          self.shiftUpper, self.zext,
                          self.signExtendImmediate, self.extMux, self.immediateMux, self.aluControl, self.alu, self.branchNot, self.branchEqAnd, self.branchNotEqAnd, self.branchOr, self.branchShiftLeft, self.branchAdder, self.branchMux, self.jumpMux, self.dataMemory, self.WBMux, 
                          self.registerFile # again in case of writeback
                         ]
+        
+        self.buffers = [self.fetchBuffer]
+        
+        self.bubbles = [False, True]
 
         self._connectCPUElements()
 
@@ -112,7 +118,7 @@ class MIPSSimulator():
         self.fetchBuffer.connectInputs([self.add4toPC.result, self.instructionMemory.outgoingInstruction])
         
         self.shiftLeftJumpAddress.connectInputs([self.fetchBuffer.out_instruction])
-        self.combineJumpAddress.connectInputs([self.pc.currentAddress, self.shiftLeftJumpAddress.result])
+        self.combineJumpAddress.connectInputs([self.fetchBuffer.out_pc, self.shiftLeftJumpAddress.result])
         self.jumpMux.connectInputs([self.branchMux.output, self.combineJumpAddress.output, self.control.Jump])
         
         self.bne.connectInputs([self.control.Branch])
@@ -192,12 +198,35 @@ class MIPSSimulator():
         self.nCycles += 1
         
         # The following is just a small sample implementation
-        self.pc.writeOutput()
+        #self.pc.writeOutput()
         print("pc:", hex(self.pc.currentAddress.value))
-        self.instructionMemory.writeOutput()
+        #self.instructionMemory.writeOutput()
         #print("mem:", hex(self.instructionMemory.incomingAddress.value))
         printInstructionFormat(self.instructionMemory.outgoingInstruction.value)
-        for elem in self.elements:
+        
+        for buffer in self.buffers:
+            buffer.writeOutput()
+        
+        if not self.bubbles[0]:
+            for elem in self.fetchStage:
+                elem.writeOutput()
+                
+        if not self.bubbles[1]:
+            for elem in self.elements:
+                elem.writeOutput()
+                
+        for elem in self.fetchStage:
             elem.writeOutput()
+                
+        self.fetchBuffer.dump()
+        print("pc:", hex(self.pc.currentAddress.value))
+                
+        
+            
         self.registerFile.printAll()
+        
+        for i in reversed(range(1, len(self.bubbles))):
+            self.bubbles[i] = self.bubbles[i - 1]
+            
+        self.bubbles[0] = False
         

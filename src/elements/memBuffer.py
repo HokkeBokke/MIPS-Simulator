@@ -15,7 +15,7 @@ class FetchBuffer(CPUElement):
         self.out_instruction = Value(0)
 
     def connectInputs(self, inputs: List[Value]):
-        assert len(inputs) == 2, f'FetchBuffer should have 2 inputs'
+        assert len(inputs) == 2, 'FetchBuffer should have 2 inputs'
         
         self.in_pc = inputs[0]
         self.in_instruction = inputs[1]
@@ -23,3 +23,12 @@ class FetchBuffer(CPUElement):
     def writeOutput(self):
         self.out_pc.value = self.in_pc.value
         self.out_instruction.value = self.in_instruction.value
+        
+    def dump(self):
+        print(f"""fetch buffer:
+=========
+(pc)    {hex(self.in_pc.value)} => {hex(self.out_pc.value)}
+(inst)  {hex(self.in_instruction.value)} => {hex(self.out_instruction.value)}
+=========
+
+""")
