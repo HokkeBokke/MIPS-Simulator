@@ -22,7 +22,7 @@ from elements.zeroExtend import ZeroExtend
 from elements.andGate import AndGate
 from elements.orGate import OrGate
 from elements.notGate import NotGate
-from elements.memBuffer import FetchBuffer
+from elements.memBuffer import DecodeBuffer, FetchBuffer, ExBuffer, MemBuffer
 
 from common import printInstructionFormat
 
@@ -60,6 +60,9 @@ class MIPSSimulator():
         self.control = Control()
         
         self.fetchBuffer = FetchBuffer()
+        self.decodeBuffer = DecodeBuffer()
+        self.exBuffer = ExBuffer()
+        self.memBuffer = MemBuffer()
         
         self.bne = BitFilter(0, 0)
         self.beq = BitFilter(1, 1)
@@ -85,22 +88,25 @@ class MIPSSimulator():
         self.alu = ALU()
 
         self.fetchStage = [self.pc, self.add4toPC, self.instructionMemory]
+        
+        self.decodeStage = [
+            self.opcodeBitFilter, self.readReg1BitFilter, self.control,
+            self.opcodeBitFilter, self.readReg2BitFilter,
+            self.writeRegBitFilter, self.immBitFilter, self.functBitFilter,
+            self.writeRegMux, self.registerFile
+        ]
 
-        self.elements = [self.opcodeBitFilter, self.readReg1BitFilter, 
-                         
-                         self.readReg2BitFilter, self.writeRegBitFilter, self.immBitFilter, self.functBitFilter,
-                         self.constant1, self.constant4, self.control,
+        self.elements = [
+                         self.constant1, self.constant4, 
                          
                          self.beq, self.bne, 
-                         self.writeRegMux, self.registerFile, self.shiftLeftJumpAddress, self.combineJumpAddress,
+                          self.shiftLeftJumpAddress, self.combineJumpAddress,
                          self.shiftUpper, self.zext,
                          self.signExtendImmediate, self.extMux, self.immediateMux, self.aluControl, self.alu, self.branchNot, self.branchEqAnd, self.branchNotEqAnd, self.branchOr, self.branchShiftLeft, self.branchAdder, self.branchMux, self.jumpMux, self.dataMemory, self.WBMux, 
                          self.registerFile # again in case of writeback
                         ]
         
-        self.buffers = [self.fetchBuffer]
-        
-        self.bubbles = [False, True]
+        self.buffers = [self.fetchBuffer, self.decodeBuffer, self.exBuffer, self.memBuffer]
 
         self._connectCPUElements()
 
@@ -112,35 +118,27 @@ class MIPSSimulator():
         self.add4toPC.connectInputs([self.pc.currentAddress, self.constant4.constantValue])
         self.pc.connectInputs([self.jumpMux.output])
         self.instructionMemory.connectInputs([self.pc.currentAddress])
-        self.control.connectInputs([self.opcodeBitFilter.filteredBits])
         
-        # Pipeline buffer (fetch -> decode)
+        
+        # IF/ID buffer
         self.fetchBuffer.connectInputs([self.add4toPC.result, self.instructionMemory.outgoingInstruction])
         
-        self.shiftLeftJumpAddress.connectInputs([self.fetchBuffer.out_instruction])
-        self.combineJumpAddress.connectInputs([self.fetchBuffer.out_pc, self.shiftLeftJumpAddress.result])
-        self.jumpMux.connectInputs([self.branchMux.output, self.combineJumpAddress.output, self.control.Jump])
-        
-        self.bne.connectInputs([self.control.Branch])
-        self.beq.connectInputs([self.control.Branch])
-        self.branchNot.connectInputs([self.alu.isZero])
-        self.branchNotEqAnd.connectInputs([self.bne.filteredBits, self.branchNot.output])
-        self.branchEqAnd.connectInputs([self.beq.filteredBits, self.alu.isZero])
-        self.branchOr.connectInputs([self.branchNotEqAnd.output, self.branchEqAnd.output])
-        self.branchShiftLeft.connectInputs([self.extMux.output])
-        self.branchAdder.connectInputs([self.fetchBuffer.out_pc, self.branchShiftLeft.result])
-        self.branchMux.connectInputs([self.fetchBuffer.out_pc, self.branchAdder.result, self.branchOr.output])
-        
-        self.opcodeBitFilter.connectInputs([self.fetchBuffer.out_instruction])
-        self.readReg1BitFilter.connectInputs([self.fetchBuffer.out_instruction])
+        # Decode stage
         self.readReg2BitFilter.connectInputs([self.fetchBuffer.out_instruction])
         self.writeRegBitFilter.connectInputs([self.fetchBuffer.out_instruction])
         self.immBitFilter.connectInputs([self.fetchBuffer.out_instruction])
         self.functBitFilter.connectInputs([self.fetchBuffer.out_instruction])
-        
-        self.writeRegMux.connectInputs([self.readReg2BitFilter.filteredBits, self.writeRegBitFilter.filteredBits, self.control.RegDst])
-        self.WBMux.connectInputs([self.alu.result, self.dataMemory.outgoingData, self.control.MemtoReg])
-        
+        self.shiftLeftJumpAddress.connectInputs([self.fetchBuffer.out_instruction])
+        self.combineJumpAddress.connectInputs([self.fetchBuffer.out_pc, self.shiftLeftJumpAddress.result])
+        self.jumpMux.connectInputs([self.branchMux.output, self.combineJumpAddress.output, self.control.Jump])
+        self.opcodeBitFilter.connectInputs([self.fetchBuffer.out_instruction])
+        self.readReg1BitFilter.connectInputs([self.fetchBuffer.out_instruction])
+        self.control.connectInputs([self.opcodeBitFilter.filteredBits])
+        self.signExtendImmediate.connectInputs([self.immBitFilter.filteredBits])
+        self.shiftUpper.connectInputs([self.immBitFilter.filteredBits])
+        self.zext.connectInputs([self.immBitFilter.filteredBits])
+        self.extMux.connectInputs([self.signExtendImmediate.output, self.zext.output, self.shiftUpper.output, self.control.ExtOp])
+
         self.registerFile.connectInputs(
             [
                 self.control.RegWrite,
@@ -151,16 +149,55 @@ class MIPSSimulator():
             ]
         )
 
-        self.shiftUpper.connectInputs([self.immBitFilter.filteredBits])
-        self.zext.connectInputs([self.immBitFilter.filteredBits])
-        self.extMux.connectInputs([self.signExtendImmediate.output, self.zext.output, self.shiftUpper.output, self.control.ExtOp])
+        # ID/EX buffer
+        self.decodeBuffer.connectInputs([
+            self.control.PCSrc, self.control.Branch, self.control.Jump,
+            self.control.RegWrite, self.control.RegDst, self.control.ALUSrc,
+            self.control.ALUOp, self.control.MemRead, self.control.MemWrite,
+            self.control.MemtoReg, self.control.ExtOp, self.fetchBuffer.out_pc,
+            self.registerFile.read_data1, self.registerFile.read_data2,
+            self.signExtendImmediate.output, self.readReg2BitFilter.filteredBits,
+            self.writeRegBitFilter.filteredBits
+        ])
         
-        self.signExtendImmediate.connectInputs([self.immBitFilter.filteredBits])
+        # Execution stage
         self.immediateMux.connectInputs([self.registerFile.read_data2, self.extMux.output, self.control.ALUSrc])
         self.aluControl.connectInputs([self.fetchBuffer.out_instruction, self.control.ALUOp])
         self.alu.connectInputs([self.registerFile.read_data1, self.immediateMux.output, self.aluControl.aluInstr])
+        self.writeRegMux.connectInputs([self.readReg2BitFilter.filteredBits, self.writeRegBitFilter.filteredBits, self.control.RegDst])
+        self.branchShiftLeft.connectInputs([self.extMux.output])
+        self.branchAdder.connectInputs([self.fetchBuffer.out_pc, self.branchShiftLeft.result])
+
+        # EX/MEM buffer
+        self.exBuffer.connectInputs([
+            self.writeRegMux.output, self.decodeBuffer.out_readData2,
+            self.alu.result, self.alu.isZero, self.branchAdder.result,
+            self.decodeBuffer.out_Branch, self.decodeBuffer.out_MemWrite,
+            self.decodeBuffer.out_MemRead, self.decodeBuffer.out_MemtoReg,
+            self.decodeBuffer.out_RegWrite
+        ])
+       
+        # Memory stage
+        self.bne.connectInputs([self.control.Branch])
+        self.beq.connectInputs([self.control.Branch])
+        self.branchNot.connectInputs([self.alu.isZero])
+        self.branchNotEqAnd.connectInputs([self.bne.filteredBits, self.branchNot.output])
+        self.branchEqAnd.connectInputs([self.beq.filteredBits, self.alu.isZero])
+        self.branchOr.connectInputs([self.branchNotEqAnd.output, self.branchEqAnd.output])
+        self.branchMux.connectInputs([self.fetchBuffer.out_pc, self.branchAdder.result, self.branchOr.output])
         
         self.dataMemory.connectInputs([self.alu.result, self.registerFile.read_data2, self.control.MemWrite, self.control.MemRead])
+
+        # MEM/WB buffer
+        self.memBuffer.connectInputs([
+            self.exBuffer.out_controlMemtoReg, self.exBuffer.out_controlRegWrite,
+            self.dataMemory.outgoingData, self.exBuffer.out_aluResult,
+            self.exBuffer.out_writeRegMux
+        ])
+        
+        # Writeback stage
+        self.WBMux.connectInputs([self.memBuffer.out_ALUResult, self.memBuffer.out_DataRead, self.memBuffer.out_MemtoReg])
+        
 
     def startAddress(self):
         '''
@@ -207,13 +244,11 @@ class MIPSSimulator():
         for buffer in self.buffers:
             buffer.writeOutput()
         
-        if not self.bubbles[0]:
-            for elem in self.fetchStage:
-                elem.writeOutput()
-                
-        if not self.bubbles[1]:
-            for elem in self.elements:
-                elem.writeOutput()
+        for elem in self.fetchStage:
+            elem.writeOutput()
+            
+        for elem in self.elements:
+            elem.writeOutput()
                 
         for elem in self.fetchStage:
             elem.writeOutput()
@@ -224,9 +259,3 @@ class MIPSSimulator():
         
             
         self.registerFile.printAll()
-        
-        for i in reversed(range(1, len(self.bubbles))):
-            self.bubbles[i] = self.bubbles[i - 1]
-            
-        self.bubbles[0] = False
-        

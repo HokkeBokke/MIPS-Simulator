@@ -11,6 +11,7 @@ class PC(CPUElement):
         # Input
         self.incomingAddress: Value = Value(0)
         self.incomingAddress.value = baseaddr
+        self.PCWrite: Value
         
         # Output
         self.currentAddress: Value = Value(0)
@@ -22,7 +23,9 @@ class PC(CPUElement):
         next = self.incomingAddress.value
         self.incomingAddress = inputs[0]
         self.incomingAddress.value = next
+        self.PCWrite = inputs[1]
         
     def writeOutput (self):
         # pc is updated by the input source
-        self.currentAddress.value = self.incomingAddress.value
+        if self.PCWrite:
+            self.currentAddress.value = self.incomingAddress.value
