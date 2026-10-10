@@ -5,6 +5,7 @@ Code written for inf-2200, University of Tromso
 from elements.cpuElement import CPUElement
 from typing import List
 from common import Value
+from dataclasses import dataclass
 
 instruction_opcodes = {
     0x02: "j",
@@ -49,6 +50,8 @@ class Control(CPUElement):
         self.MemtoReg = Value(0)
         self.ExtOp = Value(0)
         
+        self.signalsValue = Value(0)
+        
     def reset_outputs(self):
         self.PCSrc.value = 0
         self.Branch.value = 0
@@ -69,6 +72,7 @@ class Control(CPUElement):
 
     def writeOutput(self):
         self.reset_outputs()
+        self.signalsToValue()
         
         opcode = self.opcode.value
         if opcode == 0x0:
@@ -77,7 +81,6 @@ class Control(CPUElement):
             self.decode_j_type(opcode)
         else:
             self.decode_i_type(opcode)
-
 
     def decode_r_type(self):
         self.RegDst.value = 1   # destination register is determined by $rd
@@ -146,3 +149,9 @@ class Control(CPUElement):
                 print("invalid opcode:", hex(opcode))
         
         print("jump", self.Jump.value, "branch", self.Branch.value)
+        
+    def signalsToValue(self):
+        self.signalsValue.value = self.PCSrc.value << 10 | self.Branch.value << 9 | self.Jump.value << 8 \
+            | self.RegWrite.value << 7 | self.RegDst.value << 6 | self.ALUSrc.value << 5 \
+            | self.ALUOp.value << 4 | self.MemRead.value << 3 | self.MemWrite.value << 2 \
+            | self.MemtoReg.value << 1 | self.ExtOp.value

@@ -11,33 +11,33 @@ forwardSrc = {
 class ForwardingUnit(CPUElement):
     def __init__(self):
         # Input
-        self.Rs: Value
-        self.Rt: Value
-        self.EXMEMRd: Value
-        self.MEMWBRd: Value
+        self.need_reg1: Value
+        self.need_reg3: Value
+        self.ExMemResult: Value
+        self.MemWbResult: Value
         
         # Output
         self.forwardA: Value = Value(0)
         self.forwardB: Value = Value(0)
         
     def connectInputs(self, inputs: List[Value]):
-        self.Rs = inputs[0]
-        self.Rt = inputs[1]
-        self.EXMEMRd = inputs[2]
-        self.MEMWBRd = inputs[3]
+        self.need_reg1 = inputs[0]
+        self.need_reg2 = inputs[1]
+        self.ExMemResult = inputs[2]
+        self.MemWbResult = inputs[3]
     
     def writeOutput(self) -> None:
         self.forwardA.value = forwardSrc["idex"]
         self.forwardB.value = forwardSrc["idex"]
         
-        if self.Rs == self.EXMEMRd:
+        if self.need_reg1 == self.ExMemResult:
             self.forwardA.value = forwardSrc["exmem"]
             
-        if self.Rs == self.MEMWBRd:
+        if self.need_reg1 == self.MemWbResult:
             self.forwardA.value = forwardSrc["memwb"]
             
-        if self.Rt == self.EXMEMRd:
+        if self.need_reg2 == self.ExMemResult:
             self.forwardB.value = forwardSrc["exmem"]
             
-        if self.Rt == self.MEMWBRd:
+        if self.need_reg2 == self.MemWbResult:
             self.forwardB.value = forwardSrc["memwb"]

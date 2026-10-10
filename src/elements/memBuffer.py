@@ -15,14 +15,18 @@ class FetchBuffer(CPUElement):
         self.out_instruction = Value(0)
 
     def connectInputs(self, inputs: List[Value]):
-        assert len(inputs) == 2, 'FetchBuffer should have 2 inputs'
+        assert len(inputs) == 3, 'FetchBuffer should have 3 inputs'
         
         self.in_pc = inputs[0]
         self.in_instruction = inputs[1]
+        self.bubble = inputs[2]
         
     def writeOutput(self):
-        self.out_pc.value = self.in_pc.value
-        self.out_instruction.value = self.in_instruction.value
+        if self.bubble.value == 1:
+            self.out_instruction.value = 0
+        else:
+            self.out_pc.value = self.in_pc.value
+            self.out_instruction.value = self.in_instruction.value
         
     def dump(self):
         print(f"""fetch buffer:
@@ -52,48 +56,41 @@ class DecodeBuffer(CPUElement):
         self.out_readData1 = Value(0)
         self.out_readData2 = Value(0)
         self.out_signExtend = Value(0)
+        self.out_readReg1BitFilter = Value(0)
         self.out_readReg2BitFilter = Value(0)
         self.out_writeRegBitFilter = Value(0)
+        self.out_funct = Value(0)
         
         
     def connectInputs(self, inputs: List[Value]):
-        self.in_PCSrc = inputs[0]
-        self.in_Branch = inputs[1]
-        self.in_Jump = inputs[2]
-        self.in_RegWrite = inputs[3]
-        self.in_RegDst = inputs[4]
-        self.in_ALUSrc = inputs[5]
-        self.in_ALUOp = inputs[6]
-        self.in_MemRead = inputs[7]
-        self.in_MemWrite = inputs[8]
-        self.in_MemtoReg = inputs[9]
-        self.in_ExtOp = inputs[10]
-        self.in_add4toPC = inputs[11]
-        self.in_readData1 = inputs[12]
-        self.in_readData2 = inputs[13]
-        self.in_signExtend = inputs[14]
-        self.in_readReg2BitFilter = inputs[15]
-        self.in_writeRegBitFilter = inputs[16]
+        self.in_controlSignals = inputs[0]
+        self.in_readData1 = inputs[1]
+        self.in_readData2 = inputs[2]
+        self.in_signExtend = inputs[3]
+        self.in_readReg1BitFilter = inputs[4]
+        self.in_readReg2BitFilter = inputs[5]
+        self.in_writeRegBitFilter = inputs[6]
+        self.in_funct = inputs[7]
     
     def writeOutput(self):
-        self.out_PCSrc = self.in_PCSrc
-        self.out_Branch = self.in_Branch
-        self.out_Jump = self.in_Jump
-        self.out_RegWrite = self.in_RegWrite
-        self.out_RegDst = self.in_RegDst
-        self.out_ALUSrc = self.in_ALUSrc
-        self.out_ALUOp = self.in_ALUOp
-        self.out_MemRead = self.in_MemRead
-        self.out_MemWrite = self.in_MemWrite
-        self.out_MemtoReg = self.in_MemtoReg
-        self.out_ExtOp = self.in_ExtOp
-        self.out_add4toPC = self.in_add4toPC
-        self.out_readData1 = self.in_readData1
-        self.out_readData2 = self.in_readData2
-        self.out_signExtend = self.in_signExtend
-        self.out_readReg2BitFilter = self.in_readReg2BitFilter
-        self.out_writeRegBitFilter = self.in_writeRegBitFilter
-
+        self.out_PCSrc.value = (self.in_controlSignals.value >> 10) & 1
+        self.out_Branch.value = (self.in_controlSignals.value >> 9) & 1
+        self.out_Jump.value = (self.in_controlSignals.value >> 8) & 1
+        self.out_RegWrite.value = (self.in_controlSignals.value >> 7) & 1
+        self.out_RegDst.value = (self.in_controlSignals.value >> 6) & 1
+        self.out_ALUSrc.value = (self.in_controlSignals.value >> 5) & 1
+        self.out_ALUOp.value = (self.in_controlSignals.value >> 4) & 1
+        self.out_MemRead.value = (self.in_controlSignals.value >> 3) & 1
+        self.out_MemWrite.value = (self.in_controlSignals.value >> 2) & 1
+        self.out_MemtoReg.value = (self.in_controlSignals.value >> 1) & 1
+        self.out_ExtOp.value = self.in_controlSignals.value & 1
+        self.out_readData1.value = self.in_readData1.value
+        self.out_readData2.value = self.in_readData2.value
+        self.out_signExtend.value = self.in_signExtend.value
+        self.out_readReg1BitFilter.value = self.in_readReg1BitFilter.value
+        self.out_readReg2BitFilter.value = self.in_readReg2BitFilter.value
+        self.out_writeRegBitFilter.value = self.in_writeRegBitFilter.value
+        self.out_funct.value = self.in_funct.value
 
 
 class ExBuffer(CPUElement):
@@ -122,25 +119,25 @@ class ExBuffer(CPUElement):
         self.in_controlRegWrite = inputs[9]
     
     def writeOutput(self):
-        self.out_writeRegMux = self.in_writeRegMux
-        self.out_readData2 = self.in_readData2 
-        self.out_aluResult = self.in_aluResult 
-        self.out_aluZero = self.in_aluZero 
-        self.out_jumpAddr = self.in_branchAddr 
-        self.out_controlBranch = self.in_controlBranch 
-        self.out_controlMemWrite = self.in_controlMemWrite 
-        self.out_controlMemRead = self.in_controlMemRead 
-        self.out_controlMemtoReg = self.in_controlMemtoReg 
-        self.out_controlRegWrite = self.in_controlRegWrite 
+        self.out_writeRegMux.value = self.in_writeRegMux.value
+        self.out_readData2.value = self.in_readData2 .value
+        self.out_aluResult.value = self.in_aluResult .value
+        self.out_aluZero.value = self.in_aluZero .value
+        self.out_jumpAddr.value = self.in_branchAddr .value
+        self.out_controlBranch.value = self.in_controlBranch .value
+        self.out_controlMemWrite.value = self.in_controlMemWrite .value
+        self.out_controlMemRead.value = self.in_controlMemRead .value
+        self.out_controlMemtoReg.value = self.in_controlMemtoReg .value
+        self.out_controlRegWrite.value = self.in_controlRegWrite .value
         
 
 class MemBuffer(CPUElement):
     def __init__(self):
-        self.in_MemtoReg = Value(0)
-        self.in_RegWrite = Value(0)
-        self.in_DataRead = Value(0)
-        self.in_ALUResult = Value(0)
-        self.in_writeRegMux = Value(0)
+        self.out_MemtoReg = Value(0)
+        self.out_RegWrite = Value(0)
+        self.out_DataRead = Value(0)
+        self.out_ALUResult = Value(0)
+        self.out_writeRegMux = Value(0)
     
     def connectInputs(self, inputs: List[Value]):
         self.in_MemtoReg = inputs[0]
@@ -150,8 +147,8 @@ class MemBuffer(CPUElement):
         self.in_writeRegMux = inputs[4]
     
     def writeOutput(self):
-        self.out_MemtoReg = self.in_MemtoReg
-        self.out_RegWrite = self.in_RegWrite
-        self.out_DataRead = self.in_DataRead
-        self.out_ALUResult = self.in_ALUResult
-        self.out_writeRegMux = self.in_writeRegMux
+        self.out_MemtoReg.value = self.in_MemtoReg.value
+        self.out_RegWrite.value = self.in_RegWrite.value
+        self.out_DataRead.value = self.in_DataRead.value
+        self.out_ALUResult.value = self.in_ALUResult.value
+        self.out_writeRegMux.value = self.in_writeRegMux.value

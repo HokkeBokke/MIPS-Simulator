@@ -6,6 +6,7 @@ Code written for inf-2200, University of Tromso
 
 from elements.memory import Memory
 from common import Value, MemoryAccessError
+from common import Break
 
 class InstructionMemory(Memory):
     def __init__(self, filename: str):
@@ -24,3 +25,5 @@ class InstructionMemory(Memory):
             raise MemoryAccessError(f"Cannot access memory at address: {hex(self.incomingAddress.value)}")
         
         self.outgoingInstruction.value = self.memory[self.incomingAddress.value]
+        if self.outgoingInstruction.value == 0:
+            raise Break("Break instruction reached")
