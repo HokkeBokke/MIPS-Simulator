@@ -232,7 +232,7 @@ class MIPSSimulator():
 
         # EX/MEM buffer
         self.exBuffer.connectInputs([
-            self.writeRegMux.output, self.decodeBuffer.out_readData2,
+            self.writeRegMux.output, self.reg2forwardMux.output,
             self.alu.result, self.alu.isZero, self.branchAdder.result,
             self.decodeBuffer.out_Branch, self.decodeBuffer.out_MemWrite,
             self.decodeBuffer.out_MemRead, self.decodeBuffer.out_MemtoReg,
@@ -313,9 +313,16 @@ class MIPSSimulator():
         if self.nCycles == 1:
             fetchStage = fetchStage[1:]
         
-        for stage in [self.writebackStage, self.memoryStage, self.executionStage, self.decodeStage, fetchStage]:
-            for elem in stage:
-                elem.writeOutput()
+        try:
+            for stage in [self.writebackStage, self.memoryStage, self.executionStage, self.decodeStage, fetchStage]:
+                for elem in stage:
+                    elem.writeOutput()
+        except Break:
+            self.registerFile.writeOutput()
+            self.memBuffer.writeOutput()
+            self.WBMux.writeOutput()
+            self.registerFile.writeOutput()
+            raise
         
         #for elem in fetchStage:
         #    elem.writeOutput()
