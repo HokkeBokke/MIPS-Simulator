@@ -29,6 +29,8 @@ class BranchControl(CPUElement):
     def writeOutput(self) -> None:
         self.output.value = 0
         
+        print(self.branchSignal.value, self.eqComp.value)
+        
         if self.branchSignal.value == branch_op["beq"] and self.eqComp.value:
             self.output.value = 1
         elif self.branchSignal.value == branch_op["bne"] and not self.eqComp.value:
@@ -37,5 +39,4 @@ class BranchControl(CPUElement):
         if self.jumpSignal.value:
             self.output.value = 2
             
-        # print("BranchTaken", self.output.value & 0b01)
-        # print("Jump:", self.output.value >> 1)
+        print("BranchControl: ", self.output.value)

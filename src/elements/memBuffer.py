@@ -8,6 +8,8 @@ from typing import List
 
 class FetchBuffer(CPUElement):
     def __init__(self):
+        self.IFIDWrite: Value
+        
         self.in_pc: Value
         self.out_pc = Value(0)
         
@@ -15,15 +17,19 @@ class FetchBuffer(CPUElement):
         self.out_instruction = Value(0)
 
     def connectInputs(self, inputs: List[Value]):
-        assert len(inputs) == 3, 'FetchBuffer should have 3 inputs'
+        assert len(inputs) == 4, 'FetchBuffer should have 4 inputs'
         
         self.in_pc = inputs[0]
         self.in_instruction = inputs[1]
         self.bubble = inputs[2]
+        self.IFIDWrite = inputs[3]
         
     def writeOutput(self):
+        print("bubble:", self.bubble.value)
         if self.bubble.value == 1:
             self.out_instruction.value = 0
+        if self.IFIDWrite.value == 0:
+            return
         else:
             self.out_pc.value = self.in_pc.value
             self.out_instruction.value = self.in_instruction.value
@@ -73,17 +79,17 @@ class DecodeBuffer(CPUElement):
         self.in_funct = inputs[7]
     
     def writeOutput(self):
-        self.out_PCSrc.value = (self.in_controlSignals.value >> 10) & 1
-        self.out_Branch.value = (self.in_controlSignals.value >> 9) & 1
-        self.out_Jump.value = (self.in_controlSignals.value >> 8) & 1
-        self.out_RegWrite.value = (self.in_controlSignals.value >> 7) & 1
-        self.out_RegDst.value = (self.in_controlSignals.value >> 6) & 1
-        self.out_ALUSrc.value = (self.in_controlSignals.value >> 5) & 1
-        self.out_ALUOp.value = (self.in_controlSignals.value >> 4) & 1
-        self.out_MemRead.value = (self.in_controlSignals.value >> 3) & 1
-        self.out_MemWrite.value = (self.in_controlSignals.value >> 2) & 1
-        self.out_MemtoReg.value = (self.in_controlSignals.value >> 1) & 1
-        self.out_ExtOp.value = self.in_controlSignals.value & 1
+        self.out_PCSrc.value = (self.in_controlSignals.value >> 13) & 0b11
+        self.out_Branch.value = (self.in_controlSignals.value >> 11) & 0b11
+        self.out_Jump.value = (self.in_controlSignals.value >> 10) & 1
+        self.out_RegWrite.value = (self.in_controlSignals.value >> 9) & 1
+        self.out_RegDst.value = (self.in_controlSignals.value >> 8) & 1
+        self.out_ALUSrc.value = (self.in_controlSignals.value >> 7) & 1
+        self.out_ALUOp.value = (self.in_controlSignals.value >> 5) & 0b11
+        self.out_MemRead.value = (self.in_controlSignals.value >> 4) & 1
+        self.out_MemWrite.value = (self.in_controlSignals.value >> 3) & 1
+        self.out_MemtoReg.value = (self.in_controlSignals.value >> 2) & 1
+        self.out_ExtOp.value = self.in_controlSignals.value & 0b11
         self.out_readData1.value = self.in_readData1.value
         self.out_readData2.value = self.in_readData2.value
         self.out_signExtend.value = self.in_signExtend.value
@@ -119,6 +125,7 @@ class ExBuffer(CPUElement):
         self.in_controlRegWrite = inputs[9]
     
     def writeOutput(self):
+        print("exBuffer branch", self.in_controlBranch.value)
         self.out_writeRegMux.value = self.in_writeRegMux.value
         self.out_readData2.value = self.in_readData2 .value
         self.out_aluResult.value = self.in_aluResult .value

@@ -100,10 +100,11 @@ class MIPSSimulator():
         self.decodeStage = [
             self.opcodeBitFilter, self.readReg1BitFilter, self.readReg2BitFilter, 
             self.writeRegBitFilter, self.immBitFilter, self.functBitFilter,
-            self.control, self.stallMux, self.signExtendImmediate, 
-            self.branchShiftLeft, self.branchAdder, self.branchControl,
+            self.control, self.stallMux, 
+            self.shiftUpper, self.zext ,self.signExtendImmediate, self.extMux,
+            self.branchShiftLeft, self.branchAdder, 
             self.shiftLeftJumpAddress, self.combineJumpAddress,
-            self.registerFile, self.eqComparator
+            self.registerFile, self.eqComparator, self.branchControl
         ]
 
         self.executionStage = [
@@ -115,7 +116,7 @@ class MIPSSimulator():
         
         self.writebackStage = [self.WBMux]
         
-        self.buffers = [self.fetchBuffer, self.decodeBuffer, self.exBuffer, self.memBuffer]
+        self.buffers = [self.memBuffer, self.exBuffer, self.decodeBuffer, self.fetchBuffer]
 
         self._connectCPUElements()
 
@@ -135,7 +136,8 @@ class MIPSSimulator():
         self.fetchBuffer.connectInputs([
             self.add4toPC.result,
             self.instructionMemory.outgoingInstruction,
-            self.hazardDetection.stall
+            self.hazardDetection.flush,
+            self.hazardDetection.IFIDWrite
         ])
         
         # Decode stage
@@ -158,7 +160,7 @@ class MIPSSimulator():
         self.extMux.connectInputs([self.signExtendImmediate.output, self.zext.output, self.shiftUpper.output, self.control.ExtOp])
         # ---------------------
         
-        self.branchShiftLeft.connectInputs([self.extMux.output])
+        self.branchShiftLeft.connectInputs([self.signExtendImmediate.output])
         self.branchAdder.connectInputs([self.fetchBuffer.out_pc, self.branchShiftLeft.result])
 
         self.registerFile.connectInputs(
@@ -169,12 +171,20 @@ class MIPSSimulator():
                 self.memBuffer.out_writeRegMux,
                 self.WBMux.output
             ]
-        )
+        ) 
 
         self.hazardDetection.connectInputs([
-            self.decodeBuffer.out_MemRead, 
-            self.decodeBuffer.out_readData2, 
-            self.fetchBuffer.out_instruction
+            self.readReg1BitFilter.filteredBits,
+            self.readReg2BitFilter.filteredBits,
+            self.decodeBuffer.out_MemRead,
+            self.decodeBuffer.out_readReg1BitFilter,
+            self.decodeBuffer.out_readReg2BitFilter,
+            self.decodeBuffer.out_RegWrite,
+            self.exBuffer.out_writeRegMux,
+            self.exBuffer.out_controlRegWrite,
+            self.memBuffer.out_writeRegMux,
+            self.memBuffer.out_RegWrite,
+            self.control.Branch
         ])
         
         self.eqComparator.connectInputs([self.registerFile.read_data1, self.registerFile.read_data2])
@@ -199,15 +209,15 @@ class MIPSSimulator():
         ])
         
         self.reg1forwardMux.connectInputs([
-            self.registerFile.read_data1,
+            self.decodeBuffer.out_readData1,
+            self.WBMux.output,
             self.exBuffer.out_aluResult,
-            self.memBuffer.out_ALUResult,
             self.forwardingUnit.forwardA
         ])
         self.reg2forwardMux.connectInputs([
-            self.registerFile.read_data2,
+            self.decodeBuffer.out_readData2,
+            self.WBMux.output,
             self.exBuffer.out_aluResult,
-            self.memBuffer.out_ALUResult,
             self.forwardingUnit.forwardB
         ])
         
@@ -295,16 +305,23 @@ class MIPSSimulator():
         if self.nCycles == 1:
             fetchStage = fetchStage[1:]
         
-        for stage in [self.writebackStage, self.memoryStage, self.executionStage, self.decodeStage, fetchStage]:
+        for stage in [self.writebackStage, self.memoryStage, self.executionStage, self.decodeStage]:
             for elem in stage:
                 elem.writeOutput()
         
+        print("branch?", self.branchControl.output.value)
+        print("hazard?", self.hazardDetection.stall.value)
+        print("IF/ID Write?", self.hazardDetection.IFIDWrite.value)
+        for elem in fetchStage:
+            elem.writeOutput()
+        
         for buffer in self.buffers:
             buffer.writeOutput()
+        
+        printInstructionFormat(self.fetchBuffer.out_instruction.value)
             
         #print("branch control:", self.branchControl.output.value)
         #print("pc after:", hex(self.pc.currentAddress.value))
                 
         
-            
-        #self.registerFile.printAll()
+        self.registerFile.printAll()

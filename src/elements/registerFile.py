@@ -38,7 +38,7 @@ class RegisterFile(CPUElement):
             Read data 2
         """
         
-        self.RegWrite = inputs[0]   # regWrite signal from Control unit
+        self.RegWrite = inputs[0]   # regWrite signal from WB Stage
         self.read_addr1 = inputs[1] # instruction [25-21] source
         self.read_addr2 = inputs[2] # instruction [20-16] target
         self.write_reg = inputs[3]  # instruction [15-11] dest/target
@@ -49,6 +49,7 @@ class RegisterFile(CPUElement):
         self.read_data2.value = self.register[self.read_addr2.value]
         
         if self.RegWrite.value and self.write_reg.value != 0:
+            print("Writing value", self.write_data.value, "to register", self.registerNames[self.write_reg.value])
             self.register[self.write_reg.value] = self.write_data.value
 
     def printAll(self):

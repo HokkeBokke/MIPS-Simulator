@@ -22,8 +22,7 @@ class InstructionMemory(Memory):
     
     def writeOutput(self):
         if self.incomingAddress.value not in self.memory:
-            raise MemoryAccessError(f"Cannot access memory at address: {hex(self.incomingAddress.value)}")
+            self.outgoingInstruction.value = 0
+            return
         
         self.outgoingInstruction.value = self.memory[self.incomingAddress.value]
-        if self.outgoingInstruction.value == 0:
-            raise Break("Break instruction reached")

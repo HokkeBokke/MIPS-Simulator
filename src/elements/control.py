@@ -72,7 +72,7 @@ class Control(CPUElement):
 
     def writeOutput(self):
         self.reset_outputs()
-        self.signalsToValue()
+        
         
         opcode = self.opcode.value
         if opcode == 0x0:
@@ -81,6 +81,8 @@ class Control(CPUElement):
             self.decode_j_type(opcode)
         else:
             self.decode_i_type(opcode)
+            
+        self.signalsToValue()
 
     def decode_r_type(self):
         self.RegDst.value = 1   # destination register is determined by $rd
@@ -151,7 +153,8 @@ class Control(CPUElement):
         print("jump", self.Jump.value, "branch", self.Branch.value)
         
     def signalsToValue(self):
-        self.signalsValue.value = self.PCSrc.value << 10 | self.Branch.value << 9 | self.Jump.value << 8 \
-            | self.RegWrite.value << 7 | self.RegDst.value << 6 | self.ALUSrc.value << 5 \
-            | self.ALUOp.value << 4 | self.MemRead.value << 3 | self.MemWrite.value << 2 \
-            | self.MemtoReg.value << 1 | self.ExtOp.value
+        self.signalsValue.value = self.PCSrc.value << 13 | self.Branch.value << 11 | self.Jump.value << 10 \
+            | self.RegWrite.value << 9 | self.RegDst.value << 8 | self.ALUSrc.value << 7 \
+            | self.ALUOp.value << 5 | self.MemRead.value << 4 | self.MemWrite.value << 3 \
+            | self.MemtoReg.value << 2 | self.ExtOp.value
+        

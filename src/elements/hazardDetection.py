@@ -5,9 +5,14 @@ from typing import List
 class HazardDetection(CPUElement):
     def __init__(self):
         # Inputs
+        self.IFIDRegisterRs: Value
+        self.IFIDRegisterRt: Value
         self.IDEXMemRead: Value
         self.IDEXRegisterRt: Value
-        self.instruction: Value
+        self.IDEXRegisterRd: Value
+        self.EXMEMRegisterDest: Value
+        self.MEMWBRegisterDest: Value
+        self.branch: Value
         
         # Outputs
         self.stall: Value = Value(0)
@@ -16,18 +21,36 @@ class HazardDetection(CPUElement):
         self.flush: Value = Value(0)
     
     def connectInputs(self, inputs: List[Value]):
-        self.IDEXMemRead = inputs[0]
-        self.IDEXRegisterRt = inputs[1]
-        self.instruction = inputs[2]
+        assert len(inputs) == 11, "Hazard detection unit must have 11 inputs"
+        
+        self.IFIDRegisterRs = inputs[0]
+        self.IFIDRegisterRt = inputs[1]
+        self.IDEXMemRead = inputs[2]
+        self.IDEXRegisterRt = inputs[3]
+        self.IDEXRegisterRd = inputs[4]
+        self.IDEXRegWrite = inputs[5]
+        self.EXMEMRegisterDest = inputs[6]
+        self.EXMEMRegWrite = inputs[7]
+        self.MEMWBRegisterDest = inputs[8]
+        self.MEMWBRegWrite = inputs[9]
+        self.branch = inputs[10]
     
     def writeOutput(self) -> None:
         self.PCWrite.value = 1
-        IFIDRegisterRt = self.instruction.value & (0b11111 << 16)
-        IFIDRegisterRs = self.instruction.value & (0b11111 << (16 + 5))
+        self.IFIDWrite.value = 1
+        self.stall.value = 0
+        self.flush.value = 0
         
-        if self.IDEXMemRead.value and ((self.IDEXRegisterRt.value == IFIDRegisterRs) or (self.IDEXRegisterRt.value == IFIDRegisterRt)):
+        print("IF/ID.rs", self.IFIDRegisterRs.value)
+        print("IF/ID.rt", self.IFIDRegisterRt.value)
+        print("ID/EX.rt", self.IDEXRegisterRt.value)
+        print("ID/EX.rd", self.IDEXRegisterRd.value)
+        print("EX/MEM.dest", self.EXMEMRegisterDest.value)
+        print("MEM/WB.dest", self.MEMWBRegisterDest.value)
+        
+        if self.branch.value == 1 and ((self.IDEXRegWrite.value and (self.IFIDRegisterRs.value == self.IDEXRegisterRt.value or self.IFIDRegisterRs.value == self.IDEXRegisterRd.value or self.IFIDRegisterRt.value == self.IDEXRegisterRt.value or self.IFIDRegisterRt.value == self.IDEXRegisterRd.value)) or (self.EXMEMRegWrite.value and (self.IFIDRegisterRs.value == self.EXMEMRegisterDest.value or self.IFIDRegisterRt.value == self.EXMEMRegisterDest.value)) or (self.MEMWBRegWrite.value and (self.IFIDRegisterRs.value == self.MEMWBRegisterDest.value or self.IFIDRegisterRt.value == self.MEMWBRegisterDest.value))):
             self.stall.value = 1
             self.PCWrite.value = 0
-        
+            self.IFIDWrite.value = 0
         
 

@@ -29,7 +29,9 @@ class PC(CPUElement):
         
     def writeOutput (self):
         # pc is updated by the input source
+        print("PCWRITE:", self.PCWrite.value)
         if self.PCWrite.value:
+            print("pc update:", hex(self.currentAddress.value), "=>", hex(self.incomingAddress.value))
             self.currentAddress.value = self.incomingAddress.value
             
         print("PC: ", hex(self.currentAddress.value))
