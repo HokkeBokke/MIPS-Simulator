@@ -10,6 +10,8 @@ alu_control_signal = {
     "add": 0b0010,
     "subtract": 0b0110,
     "slt": 0b0111, # set on less than
+    "addu": 0b1010,
+    "subu": 0b1110
 }
 
 r_instruction_funct = {
@@ -27,14 +29,13 @@ r_instruction_funct = {
 
 class ALUControl(CPUElement):
     def __init__(self):
-        self.breakSignal = False
-        
         # INPUT
         self.funct = Value(0)
         self.aluOp = Value(0)
         
         # OUTPUT
         self.aluInstr: Value = Value(0)
+        self.breakSignal: Value = Value(0)
         
     
     def connectInputs(self, inputs: List[Value]):
@@ -51,11 +52,15 @@ class ALUControl(CPUElement):
                 case "nop":
                     return
                 case "break":
-                    raise Break("break instruction reached")
-                case "add" | "addu":
+                    self.breakSignal.value = 1
+                case "add":
                     self.aluInstr.value = alu_control_signal["add"]
-                case "sub" | "subu":
+                case "addu":
+                    self.aluInstr.value = alu_control_signal["addu"]
+                case "sub":
                     self.aluInstr.value = alu_control_signal["subtract"]
+                case "subu":
+                    self.aluInstr.value = alu_control_signal["subu"]
                 case "and":
                     self.aluInstr.value = alu_control_signal["and"]
                 case "or":

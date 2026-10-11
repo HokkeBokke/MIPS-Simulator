@@ -34,29 +34,20 @@ class ForwardingUnit(CPUElement):
         self.forwardA.value = forwardSrc["idex"]
         self.forwardB.value = forwardSrc["idex"]
         
-        print("ID/EX rs", self.need_reg1.value)
-        print("ID/EX rt", self.need_reg2.value)
-        print("EX/MEM rd", self.ExMemDest.value)
-        print("EX/MEM RegWrite", self.ExMemRegWrite.value)
-        print("MEM/WB rd", self.MemWbDest.value)
-        print("MEM/WB RegWrite", self.MemWbRegWrite.value)
-        
         if self.ExMemRegWrite.value and self.ExMemDest.value != 0 and self.need_reg1.value == self.ExMemDest.value:
             self.forwardA.value = forwardSrc["exmem"]
             
         if self.ExMemRegWrite.value and self.ExMemDest.value != 0 and self.need_reg2.value == self.ExMemDest.value:
             self.forwardB.value = forwardSrc["exmem"]
-        
+
         if self.MemWbRegWrite.value and self.MemWbDest.value != 0 \
             and not (self.ExMemRegWrite.value and (self.ExMemDest.value != 0) \
-            and (self.ExMemDest.value != self.need_reg1.value)) \
+            and (self.ExMemDest.value == self.need_reg1.value)) \
             and (self.need_reg1.value == self.MemWbDest.value):
             self.forwardA.value = forwardSrc["memwb"]
-            
+
         if self.MemWbRegWrite.value and self.MemWbDest.value != 0 \
-            and not (self.ExMemRegWrite.value and (self.ExMemDest.value != 0) \
-            and (self.ExMemDest.value != self.need_reg2.value)) \
+            and not (self.ExMemRegWrite.value and self.ExMemDest.value != 0 \
+            and (self.ExMemDest.value == self.need_reg2.value)) \
             and (self.need_reg2.value == self.MemWbDest.value):
             self.forwardB.value = forwardSrc["memwb"]
-            
-        print("Forwarding signal", self.forwardA.value, self.forwardB.value)

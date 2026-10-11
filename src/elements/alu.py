@@ -22,14 +22,26 @@ class ALU(CPUElement):
     
     def writeOutput(self) -> None:
         self.isZero.value = 0
+        signed_a = fromUnsignedWordToSignedWord(self.value_a.value)
+        signed_b = fromUnsignedWordToSignedWord(self.value_b.value)
         
         match self.aluControlOp.value:
             case 0b0010:
+                signed_result = signed_a + signed_b
+                self.result.value = signed_result
+                print(f"ALU: {signed_a} + {signed_b} = {signed_result} ({hex(fromSignedWordToUnsignedWord(signed_result))})")
+                if not -0x80000000 <= signed_result <= 0x7fffffff:
+                    raise Overflow("Add overflow")
+            case 0b1010:
                 self.result.value = self.value_a.value + self.value_b.value
-                print(f"ALU: {self.value_a.value} + {self.value_b.value} = {self.result.value} ({hex(fromSignedWordToUnsignedWord(self.result.value))})")
             case 0b0110:
+                signed_result = signed_a - signed_b
+                self.result.value = signed_result
+                print(f"ALU: {signed_a} - {signed_b} = {signed_result} ({hex(fromSignedWordToUnsignedWord(signed_result))})")
+                if not -0x80000000 <= signed_result <= 0x7fffffff:
+                    raise Overflow("Subtraction overflow")
+            case 0b1110: # unsigned sub
                 self.result.value = self.value_a.value - self.value_b.value
-                print(f"ALU: {self.value_a.value} - {self.value_b.value} = {self.result.value} ({hex(self.result.value)})")
             case 0b0000:
                 self.result.value = self.value_a.value & self.value_b.value
                 print(f"ALU: {self.value_a.value} & {self.value_b.value} = {self.result.value} ({hex(self.result.value)})")

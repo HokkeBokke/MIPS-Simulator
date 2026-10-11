@@ -1,5 +1,5 @@
 from elements.cpuElement import CPUElement
-from common import Value
+from common import Value, Break
 from typing import List
 
 class HazardDetection(CPUElement):
@@ -13,15 +13,19 @@ class HazardDetection(CPUElement):
         self.EXMEMRegisterDest: Value
         self.MEMWBRegisterDest: Value
         self.branch: Value
+        self.breakSignal: Value
         
         # Outputs
         self.stall: Value = Value(0)
         self.PCWrite: Value = Value(1)
         self.IFIDWrite: Value = Value(0)
         self.flush: Value = Value(0)
+        
+        # 
+        self.breakReached = False
     
     def connectInputs(self, inputs: List[Value]):
-        assert len(inputs) == 11, "Hazard detection unit must have 11 inputs"
+        assert len(inputs) == 12, "Hazard detection unit must have 12 inputs"
         
         self.IFIDRegisterRs = inputs[0]
         self.IFIDRegisterRt = inputs[1]
@@ -34,6 +38,7 @@ class HazardDetection(CPUElement):
         self.MEMWBRegisterDest = inputs[8]
         self.MEMWBRegWrite = inputs[9]
         self.branch = inputs[10]
+        self.breakSignal = inputs[11]
     
     def writeOutput(self) -> None:
         self.PCWrite.value = 1
@@ -53,4 +58,13 @@ class HazardDetection(CPUElement):
             self.PCWrite.value = 0
             self.IFIDWrite.value = 0
         
+        if self.breakSignal.value:
+            self.breakReached = True
+            
+        if self.breakReached:
+            self.flush.value = 1
+            self.IDEXRegWrite.value = 0
+                        
+            if not (self.IDEXRegWrite.value or self.EXMEMRegWrite.value or self.MEMWBRegWrite.value):
+                raise Break("Break instruction reached")
         

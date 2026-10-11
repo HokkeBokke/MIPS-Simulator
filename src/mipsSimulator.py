@@ -28,7 +28,7 @@ from elements.eqComparator import EqualityComparator
 from elements.branchControl import BranchControl
 from elements.hazardDetection import HazardDetection
 
-from common import printInstructionFormat
+from common import printInstructionFormat, Break
 
 
 class MIPSSimulator():
@@ -184,7 +184,8 @@ class MIPSSimulator():
             self.exBuffer.out_controlRegWrite,
             self.memBuffer.out_writeRegMux,
             self.memBuffer.out_RegWrite,
-            self.control.Branch
+            self.control.Branch,
+            self.aluControl.breakSignal
         ])
         
         self.eqComparator.connectInputs([self.registerFile.read_data1, self.registerFile.read_data2])
@@ -323,6 +324,8 @@ class MIPSSimulator():
             buffer.writeOutput()
                 
         printInstructionFormat(self.fetchBuffer.out_instruction.value)
+        if self.aluControl.breakSignal and not self.memBuffer.in_RegWrite.value and not self.exBuffer.in_controlRegWrite.value:
+            raise Break("Break instruction reached")
             
         #print("branch control:", self.branchControl.output.value)
         #print("pc after:", hex(self.pc.currentAddress.value))
