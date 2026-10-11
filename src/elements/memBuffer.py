@@ -125,7 +125,6 @@ class ExBuffer(CPUElement):
         self.in_controlRegWrite = inputs[9]
     
     def writeOutput(self):
-        print("exBuffer branch", self.in_controlBranch.value)
         self.out_writeRegMux.value = self.in_writeRegMux.value
         self.out_readData2.value = self.in_readData2 .value
         self.out_aluResult.value = self.in_aluResult .value

@@ -29,7 +29,7 @@ class BranchControl(CPUElement):
     def writeOutput(self) -> None:
         self.output.value = 0
         
-        print(self.branchSignal.value, self.eqComp.value)
+        #print(self.branchSignal.value, self.eqComp.value)
         
         if self.branchSignal.value == branch_op["beq"] and self.eqComp.value:
             self.output.value = 1

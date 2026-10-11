@@ -41,16 +41,16 @@ class HazardDetection(CPUElement):
         self.stall.value = 0
         self.flush.value = 0
         
-        print("IF/ID.rs", self.IFIDRegisterRs.value)
-        print("IF/ID.rt", self.IFIDRegisterRt.value)
-        print("ID/EX.rt", self.IDEXRegisterRt.value)
-        print("ID/EX.rd", self.IDEXRegisterRd.value)
-        print("EX/MEM.dest", self.EXMEMRegisterDest.value)
-        print("MEM/WB.dest", self.MEMWBRegisterDest.value)
+        #print("IF/ID.rs", self.IFIDRegisterRs.value)
+        #print("IF/ID.rt", self.IFIDRegisterRt.value)
+        #print("ID/EX.rt", self.IDEXRegisterRt.value)
+        #print("ID/EX.rd", self.IDEXRegisterRd.value)
+        #print("EX/MEM.dest", self.EXMEMRegisterDest.value)
+        #print("MEM/WB.dest", self.MEMWBRegisterDest.value)
         
         if self.branch.value == 1 and ((self.IDEXRegWrite.value and (self.IFIDRegisterRs.value == self.IDEXRegisterRt.value or self.IFIDRegisterRs.value == self.IDEXRegisterRd.value or self.IFIDRegisterRt.value == self.IDEXRegisterRt.value or self.IFIDRegisterRt.value == self.IDEXRegisterRd.value)) or (self.EXMEMRegWrite.value and (self.IFIDRegisterRs.value == self.EXMEMRegisterDest.value or self.IFIDRegisterRt.value == self.EXMEMRegisterDest.value)) or (self.MEMWBRegWrite.value and (self.IFIDRegisterRs.value == self.MEMWBRegisterDest.value or self.IFIDRegisterRt.value == self.MEMWBRegisterDest.value))):
             self.stall.value = 1
             self.PCWrite.value = 0
             self.IFIDWrite.value = 0
         
-
+        

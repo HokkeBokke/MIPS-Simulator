@@ -42,11 +42,11 @@ class ALUControl(CPUElement):
         self.aluOp = inputs[1]
     
     def writeOutput(self) -> None:
-        print("ALU CONTROL: op", self.aluOp.value)
+        #print("ALU CONTROL: op", self.aluOp.value)
         
         if self.aluOp.value == 0b10:
             funct = r_instruction_funct[(self.funct.value & 0b111111)]
-            print("ALU CONTROL: funct", funct)
+            #print("ALU CONTROL: funct", funct)
             match funct:
                 case "nop":
                     return

@@ -204,7 +204,9 @@ class MIPSSimulator():
         self.forwardingUnit.connectInputs([
             self.decodeBuffer.out_readReg1BitFilter,
             self.decodeBuffer.out_readReg2BitFilter,
+            self.exBuffer.out_controlRegWrite,
             self.exBuffer.out_writeRegMux,
+            self.memBuffer.out_RegWrite,
             self.memBuffer.out_writeRegMux
         ])
         
@@ -305,19 +307,16 @@ class MIPSSimulator():
         if self.nCycles == 1:
             fetchStage = fetchStage[1:]
         
-        for stage in [self.writebackStage, self.memoryStage, self.executionStage, self.decodeStage]:
+        for stage in [self.writebackStage, self.memoryStage, self.executionStage, self.decodeStage, fetchStage]:
             for elem in stage:
                 elem.writeOutput()
         
-        print("branch?", self.branchControl.output.value)
-        print("hazard?", self.hazardDetection.stall.value)
-        print("IF/ID Write?", self.hazardDetection.IFIDWrite.value)
-        for elem in fetchStage:
-            elem.writeOutput()
+        #for elem in fetchStage:
+        #    elem.writeOutput()
         
         for buffer in self.buffers:
             buffer.writeOutput()
-        
+                
         printInstructionFormat(self.fetchBuffer.out_instruction.value)
             
         #print("branch control:", self.branchControl.output.value)

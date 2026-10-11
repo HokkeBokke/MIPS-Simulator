@@ -18,6 +18,6 @@ class EqualityComparator(CPUElement):
     def writeOutput(self) -> None:
         self.output.value = 0
         
-        print("eq cmp:", self.value_a.value, self.value_b.value)
+        #print("eq cmp:", self.value_a.value, self.value_b.value)
         if self.value_a.value == self.value_b.value:
             self.output.value = 1
