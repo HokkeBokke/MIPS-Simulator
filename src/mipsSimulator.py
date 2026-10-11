@@ -331,7 +331,7 @@ class MIPSSimulator():
             buffer.writeOutput()
                 
         printInstructionFormat(self.fetchBuffer.out_instruction.value)
-        if self.aluControl.breakSignal and not self.memBuffer.in_RegWrite.value and not self.exBuffer.in_controlRegWrite.value:
+        if self.aluControl.breakSignal.value and not self.memBuffer.in_RegWrite.value and not self.exBuffer.in_controlRegWrite.value:
             raise Break("Break instruction reached")
             
         #print("branch control:", self.branchControl.output.value)
