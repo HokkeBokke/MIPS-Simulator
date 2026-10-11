@@ -49,7 +49,7 @@ class ALU(CPUElement):
                 self.result.value = self.value_a.value | self.value_b.value
                 print(f"ALU: {self.value_a.value} | {self.value_b.value} = {self.result.value} ({hex(self.result.value)})")
             case 0b0111:
-                self.result.value = 1 if self.value_a.value < self.value_b.value else 0
+                self.result.value = 1 if signed_a < signed_b else 0
             case 0b0101:
                 self.result.value = ~(self.value_a.value | self.value_b.value)
             case _:
