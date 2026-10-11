@@ -1,0 +1,300 @@
+INF-2200 Computer Architecture and Organization - Mandatory assignment 2
+Pipelined MIPS datapath simulator - Report
+
+Authors (from git history): William Tetlie, Håkon Øisund
+State described: branch "pipeline", commit 67baad3. All numbers in this report
+were measured on that commit unless another branch is named.
+
+NOTE TO CO-AUTHOR BEFORE HAND-IN: two parts are marked [FILL IN]. They concern
+the development plan we presented at the design review and our use of language
+models. Neither is recorded in the repository, so they are left open rather
+than invented.
+
+
+1. DATAPATH AND CONTROLLERS
+---------------------------
+
+The simulator implements the classic five-stage pipeline (IF, ID, EX, MEM, WB)
+from the textbook with the branch decision moved to ID. Every block is a
+CPUElement subclass in src/elements, wired together in
+MIPSSimulator._connectCPUElements (src/mipsSimulator.py). The drawing is in
+assets/Datapath.drawio.
+
+IF   pcSrc (3-input mux: PC+4 / branch target / jump target), PC with a
+     PCWrite enable, a +4 adder and the instruction memory.
+ID   Six BitFilter elements split the instruction into opcode, rs, rt, rd,
+     imm16 and funct. Control decodes the opcode. The immediate is prepared by
+     SignExtend, ZeroExtend and ShiftUpper (imm << 16, for lui) and selected by
+     extMux on the ExtOp signal. The branch target (PC+4 + sext(imm)<<2) and
+     the jump target ((PC+4)[31:28] combined with instr[25:0]<<2, in
+     CombineBits) are computed here. An EqualityComparator compares the two
+     register-file outputs, and BranchControl turns Branch, Jump and the
+     comparator result into the pcSrc select (0 = PC+4, 1 = branch, 2 = jump).
+EX   Two 3-input forwarding muxes in front of the ALU, the ALUSrc mux, the
+     ALUControl and the ALU, plus the RegDst mux choosing rt or rd as
+     destination.
+MEM  Data memory (MemRead / MemWrite).
+WB   MemtoReg mux; its output is the write data of the register file.
+
+Pipeline registers (src/elements/memBuffer.py): FetchBuffer (IF/ID),
+DecodeBuffer (ID/EX), ExBuffer (EX/MEM), MemBuffer (MEM/WB). The FetchBuffer
+has a write enable (IFIDWrite) and a flush input.
+
+Main control. Control produces Branch (2 bits: 01 = bne, 10 = beq), Jump,
+RegWrite, RegDst, ALUSrc, ALUOp (2 bits), MemRead, MemWrite, MemtoReg and ExtOp
+(2 bits). The signals are packed into one word (signalsValue) which passes
+through stallMux before entering ID/EX, so a stall replaces the whole word by 0
+(a bubble). DecodeBuffer unpacks it again. R-type uses ALUOp=10; lw, sw, addi,
+addiu use 00 (add); beq/bne use 01; lui uses add with rs=$zero and the shifted
+immediate.
+
+ALU control. ALUOp=10 looks up funct: add/addu -> add, sub/subu -> subtract,
+and, or, nor, slt. funct 0x0d (break) raises the Break exception from the EX
+stage; funct 0x00 (nop) leaves the ALU operation unchanged.
+
+Forwarding unit. Compares ID/EX.rs and ID/EX.rt with the destination register
+in EX/MEM and MEM/WB and drives the two ALU-input muxes (00 = ID/EX value,
+10 = EX/MEM ALU result, 01 = WB mux output).
+
+Hazard detection unit. Outputs stall, PCWrite, IFIDWrite and flush. It is only
+used for branches: when the instruction in ID is a branch and one of its source
+registers is the destination of an instruction further down the pipeline, PC
+and IF/ID are held and a bubble is inserted.
+
+Tick order. One call to tick() first refreshes opcode/rs/rt/Control, then the
+hazard and forwarding units, then evaluates the stages in the order WB, MEM,
+EX, ID, IF, and finally clocks the four pipeline registers from back to front
+(MEM/WB first) so that each register reads its input before the previous one
+overwrites it.
+
+
+2. PERFORMANCE: SINGLE-CYCLE VS PIPELINED
+-----------------------------------------
+
+Method. We use the stage delays from textbook chapter 4.6: instruction memory
+200 ps, register read 100 ps, ALU 200 ps, data memory 200 ps, register write
+100 ps. The single-cycle clock must fit the longest instruction (lw):
+200+100+200+200+100 = 800 ps. The pipelined clock is set by the slowest stage:
+200 ps. Execution time = cycle count x clock period, with the cycle count taken
+from MIPSSimulator.nCycles. The single-cycle count comes from the branch
+"single-cycle-complete" (commit 3c6a446), the pipelined count from "pipeline".
+
+Only src/memfiles/add.mem gives a correct result on both versions ($t2 = 4950,
+the sum 0..99), so it is the only program we can compare fairly:
+
+                         cycles   clock     time       speedup
+    single-cycle          310     800 ps    248.0 ns   1.00
+    pipelined (ideal)     612     200 ps    122.4 ns   2.03
+    pipelined (adjusted)  612     300 ps    183.6 ns   1.35
+
+The program executes 310 instructions. The pipeline needs 612 cycles: 310
+fetches, 300 stall cycles and 2 cycles for the break to reach EX. Pipelined CPI
+is therefore 612/310 = 1.97. All 300 stall cycles come from the loop branch
+"bne t1,t3", which follows directly after "addiu t1,t1,1" and is stalled three
+cycles in each of the 100 iterations (see section 3). So the pipeline is about
+twice as fast instead of the ideal four times.
+
+The "adjusted" row is an honest correction. In our tick order the IF stage is
+evaluated after the ID stage in the same cycle, so a taken branch or jump
+redirects the fetch in the very cycle it is decoded. This gives a zero-cycle
+branch penalty in the simulation, but in hardware it means register read and
+compare (ID) followed by an instruction memory read (IF) must fit in one clock
+period: at least 100 + 200 = 300 ps before counting comparator and mux delay.
+With that period the speedup on add.mem is 1.35.
+
+fibonacci.mem and selectionsort.mem are not usable for the comparison: the
+pipelined version computes wrong values for fibonacci (340 cycles) and
+selectionsort does not reach break within 200 000 cycles on either version.
+
+
+3. HAZARD HANDLING
+------------------
+
+3.1 Data hazards: forwarding to EX
+ALU operands are forwarded from EX/MEM and MEM/WB through the two 3-input
+muxes, so a chain of dependent ALU instructions needs no stall.
+
+Hardware cost: four 5-bit comparators, a few gates for the RegWrite and
+"destination != $zero" conditions, and two 32-bit 3:1 muxes. The muxes sit in
+front of the ALU and therefore lengthen the EX stage, which is already one of
+the critical stages. Complexity is low; it is pure combinational logic on
+values already present in the pipeline registers.
+
+3.2 Data hazards for branches: stalling in ID
+Because the comparison is done in ID directly on the register-file outputs and
+we do not forward into ID, a branch must wait until every producer of its
+operands has written back. The hazard unit compares IF/ID.rs and IF/ID.rt with
+the instructions in ID/EX, EX/MEM and MEM/WB and stalls while any match. Our
+register file reads before it writes inside one tick, so the branch also has to
+wait while the producer is in WB. The result is up to 3 stall cycles for a
+branch directly after the instruction producing its operand.
+
+Hardware cost: up to eight 5-bit comparators, enables on PC and IF/ID and a
+mux that zeroes the control word. That is cheaper than forwarding to ID (two
+more 32-bit muxes in front of the comparator), but slow: in add.mem 49 % of all
+cycles are these stalls. Two standard improvements would cut it to one cycle
+for ALU producers: writing the register file in the first half of the cycle and
+reading in the second, and forwarding EX/MEM to the ID comparator.
+
+3.3 Control hazards
+Branch and jump are resolved in ID with a dedicated 32-bit equality comparator
+and a dedicated adder for the target, instead of using the ALU in EX. As
+described in section 2, the fetch is evaluated after decode in the same tick,
+so the instruction following a taken branch is never fetched and nothing has to
+be flushed. The flush output of the hazard unit exists and is wired to IF/ID,
+but it is never asserted.
+
+Hardware cost: the extra comparator and adder in ID are cheap. The real cost
+is timing: the ID -> PC mux -> instruction memory path in one cycle would
+stretch the clock (section 2). A real design would register the redirect, pay
+one flushed instruction per taken branch, and keep the 200 ps clock. Whether
+that is a net win depends on the taken-branch frequency: with 300 ps instead of
+200 ps every instruction pays 50 %, whereas a one-cycle penalty only costs on
+taken branches.
+
+3.4 What is not handled
+See section 6: load-use stalls, forwarding of store data, a dependency at
+distance three, and stalling for beq are missing or wrong.
+
+
+4. DEVELOPMENT PLAN AND DIVERGENCE
+----------------------------------
+
+Plan presented at the design review:
+[FILL IN: the planned order of instruction types, the time estimate per part,
+the pipelining estimate and the validation strategy. The plan is not stored in
+the repository.]
+
+What actually happened (from git history):
+  19-21 Sep  Memory loading, step debugger, Control and RegisterFile.
+  21-23 Sep  Remaining elements, bit filters and rewiring, R-type and I-type
+             instructions, branches. First datapath drawing.
+  24-25 Sep  Single-cycle version close to complete (32 of 33 integration
+             tests on branch "wip"). Pipeline registers started, pipelined
+             drawing added.
+  25 Sep -   No commits.
+  10 Oct
+  10-11 Oct  Forwarding unit, hazard detection, branch moved to ID, bug
+             fixing.
+
+Divergence:
+- The single-cycle part took about one week and went roughly instruction type
+  by instruction type. The pipelining was done in two short bursts with a
+  two-week gap, and the hazard handling was done in the last two days. That
+  was too little time: the pipelined version is not correct (section 6).
+- The single-cycle version was never fully finished before pipelining started.
+  The best single-cycle state passes 32 of 33 tests (subu traps on overflow),
+  and the branch named "single-cycle-complete" passes 27. Overflow detection
+  existed in the single-cycle ALU on "wip" but was lost on the way to the
+  pipeline branch, so the trap tests regressed.
+- Unit tests were supposed to drive the design of each element. In practice we
+  debugged with print statements and the integration tests, and no unit tests
+  were written for our own elements.
+- The design changed during the work: the branch decision was moved from EX
+  to ID, which added the comparator, BranchControl and the stalling logic that
+  were not in the first drawing.
+[FILL IN: comparison against the estimated hours.]
+
+
+5. TEST CASES
+-------------
+
+Integration tests (provided, tests/integration): 33 files, run with
+"pytest -rPf tests/integration". Result on the pipeline branch: 11 passed,
+22 failed (section 6).
+
+Manual programs (provided, src/memfiles), run to break with a 200 000 cycle
+limit:
+    add.mem            612 cycles, $t2 = 4950 (correct), $t3 = 100 (should
+                       be 0: the last two instructions before break are lost)
+    fibonacci.mem      340 cycles, wrong result (only one word stored)
+    selectionsort.mem  no break within 200 000 cycles
+
+Unit tests (tests/unit): only the two files from the pre-code, test_add.py and
+test_common.py; both pass (3 tests). We did not write unit tests for the other
+CPUElement subclasses, so this requirement is not met.
+
+Hazard tests: we did not write our own memory files with known data and
+control hazards, so this requirement is not met either. What we can show is
+what the provided programs happen to exercise:
+- add.mem: branch-operand stall (addiu directly followed by bne on the same
+  register, 100 times) and taken branches/jumps without a wrongly executed
+  instruction. Correct result.
+- fibonacci.mem: back-to-back ALU dependencies and a store of a value produced
+  two instructions earlier. Wrong result, which exposes the forwarding
+  problems in section 6.
+The tests that should have been written are: ALU result used by the next
+instruction and by the one after; two writers of the same register followed by
+a reader; lw followed directly by a use; sw of a just-computed value; a
+dependency at distance three; beq and bne directly after the producer, taken
+and not taken; and a jump followed by an instruction that must not execute.
+
+
+6. KNOWN BUGS AND PROBLEMS
+--------------------------
+
+Failing provided tests (22 of 33), with the observed symptom:
+  trap_add, trap_sub1, trap_sub2   Break raised instead of Overflow
+  add1, lui1, lui2, lw, nor1, or1, or2, slt, sub1, sub2, subu, break2
+                                   destination register still 0
+  add2, addu1, addu2, bne2         wrong register value
+  beq3                             never reaches break
+  sw1, sw2                         memory at the expected address not written
+Passing: and, beq1, beq2, beq4, bne1, bne3, break1, jump1, jump2, nop, nor2.
+
+Causes. These come from reading the code against the symptoms; we have not
+confirmed them one by one by fixing them.
+
+1. Break stops the pipeline too early. Break is raised in EX, and inside a
+   tick EX is evaluated before the register file performs its write. The
+   instructions that are in MEM and WB at that moment never write their
+   register. This explains the "register still 0" symptom, because the tests
+   end with break directly after the instruction under test. Checked in a
+   scratch copy: fixing only this moves the result from 22 to 20 failures
+   (most tests then fail on cause 3 instead); fixing this and cause 3 together
+   leaves 6 failures (the three trap tests, beq3, sw1, sw2).
+2. No overflow detection. The ALU never raises Overflow, so all three trap
+   tests fail.
+3. Wrong MEM/WB forwarding condition. In ForwardingUnit the guard compares
+   "EX/MEM.dest != rs" where the textbook has "==". MEM/WB forwarding is
+   therefore blocked whenever the instruction in between writes some other
+   register, and when both stages match the older MEM/WB value wins.
+4. Branch stall only works for bne. The hazard unit tests "branch == 1", but
+   Branch is 01 for bne and 10 for beq, so beq never stalls and compares stale
+   registers (beq3 branches past the end of the program). In addition the
+   inputs named ID/EX.rt and ID/EX.rd are wired to rs and rt of the
+   instruction in EX, so an R-type producer directly before a branch is not
+   detected in its first cycle.
+5. No load-use stall. MemRead of ID/EX is connected to the hazard unit but not
+   used; an instruction directly after lw receives the address instead of the
+   loaded word.
+6. Store data is not forwarded. EX/MEM takes the rt value straight from ID/EX
+   instead of from the forwarding mux.
+7. No write-before-read in the register file. An instruction in ID in the
+   cycle its producer is in WB reads the old value and no forwarding path
+   covers that distance.
+8. slt compares the unsigned 32-bit representations, so it is wrong for
+   negative operands.
+9. Smaller issues: the flush signal is never asserted (not needed with the
+   current tick order, see 3.3); the zero-extend path is selectable but no
+   instruction uses it; AndGate, OrGate, NotGate and RandomControl are unused;
+   the simulator prints a lot of debug output every tick; simulator.py steps
+   one cycle per key press and does not catch Break, so a run ends with a
+   traceback.
+
+Other requirements not met: unit tests per element and own hazard tests
+(section 5), and no fully passing single-cycle version (section 4).
+
+
+7. DECLARATION OF LARGE LANGUAGE MODEL USE
+------------------------------------------
+
+This report was drafted with Claude (Anthropic) through Claude Code. The model
+read the repository, ran the provided test suites and the three manual
+programs on the pipeline and single-cycle branches, and wrote the text from
+those results. The measurements in sections 2, 5 and 6 and the bug analysis in
+section 6 come from that session. No source code was changed by the model in
+that session.
+
+[FILL IN: any use of language models while writing the simulator code, and for
+what.]
