@@ -23,30 +23,23 @@ class ALU(CPUElement):
     def writeOutput(self) -> None:
         self.isZero.value = 0
         
-        num1 = fromUnsignedWordToSignedWord(self.value_a.value)
-        num2 = fromUnsignedWordToSignedWord(self.value_b.value)
-        
         match self.aluControlOp.value:
             case 0b0010:
-                self.result.value = num1 + num2
+                self.result.value = self.value_a.value + self.value_b.value
                 print(f"ALU: {self.value_a.value} + {self.value_b.value} = {self.result.value} ({hex(fromSignedWordToUnsignedWord(self.result.value))})")
-                if abs(self.result.value) >= 0x80000000:
-                    raise Overflow("Addition overflow")
             case 0b0110:
-                self.result.value = num1 - num2
+                self.result.value = self.value_a.value - self.value_b.value
                 print(f"ALU: {self.value_a.value} - {self.value_b.value} = {self.result.value} ({hex(self.result.value)})")
-                if abs(self.result.value) > 0x80000000:
-                    raise Overflow("Subtraction overflow")
             case 0b0000:
-                self.result.value = num1 & num2
+                self.result.value = self.value_a.value & self.value_b.value
                 print(f"ALU: {self.value_a.value} & {self.value_b.value} = {self.result.value} ({hex(self.result.value)})")
             case 0b0001:
-                self.result.value = num1 | num2
+                self.result.value = self.value_a.value | self.value_b.value
                 print(f"ALU: {self.value_a.value} | {self.value_b.value} = {self.result.value} ({hex(self.result.value)})")
             case 0b0111:
-                self.result.value = 1 if num1 < num2 else 0
+                self.result.value = 1 if self.value_a.value < self.value_b.value else 0
             case 0b0101:
-                self.result.value = ~(num1 | num2)
+                self.result.value = ~(self.value_a.value | self.value_b.value)
             case _:
                 print("ALU ?", bin(self.aluControlOp.value))
         
