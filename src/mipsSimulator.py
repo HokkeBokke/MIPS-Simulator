@@ -191,9 +191,9 @@ class MIPSSimulator():
         self.branchControl.connectInputs([self.control.Branch, self.eqComparator.output, self.control.Jump])
         self.stallMux.connectInputs([self.control.signalsValue, self.constant0.constantValue, self.hazardDetection.stall])
 
-        # ID/EX buffer
+        # ID/EX buffer (control via stallMux so stalls insert a bubble)
         self.decodeBuffer.connectInputs([
-            self.control.signalsValue,
+            self.stallMux.output,
             self.registerFile.read_data1, self.registerFile.read_data2,
             self.extMux.output, self.readReg1BitFilter.filteredBits,
             self.readReg2BitFilter.filteredBits, self.writeRegBitFilter.filteredBits,
@@ -300,6 +300,11 @@ class MIPSSimulator():
         #print("mem:", hex(self.instructionMemory.incomingAddress.value))
         #printInstructionFormat(self.instructionMemory.outgoingInstruction.value)
         
+        # Refresh IF/ID-derived decode signals before hazard detection so it
+        # sees the current instruction's Branch/rs/rt, not last cycle's.
+        for elem in [self.opcodeBitFilter, self.readReg1BitFilter, self.readReg2BitFilter, self.control]:
+            elem.writeOutput()
+
         self.hazardDetection.writeOutput()
         self.forwardingUnit.writeOutput()
         
